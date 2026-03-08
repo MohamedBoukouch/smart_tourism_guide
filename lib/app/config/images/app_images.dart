@@ -7,9 +7,11 @@ class AppImages {
 
   static const String logo = "assets/images/logo.svg";
 
-  // static const String splash_1 = "assets/splash/SL1.jpg";
-  // static const String splash_2 = "assets/splash/SL2.jpg";
-  // static const String splash_3 = "assets/splash/SL3.jpg";
-  // static const String error = "assets/icons/error.jpg";
-  // static const String data_empty = "assets/icons/empty_data.jpg";
+  static const String profile = "assets/images/profile.svg";
+  static const String position_asking = "assets/images/position_asking.svg";
+
+  //icons
+  static const String icon_back = "assets/icons/icon_back.svg";
+  static const String map_location = "assets/icons/location_icon.svg";
+  static const String map_filter = "assets/icons/map_filter.svg";
 }

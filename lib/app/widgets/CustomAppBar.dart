@@ -16,10 +16,10 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           SvgPicture.asset(AppImages.logo, height: 30),
-          // CircleAvatar(
-          //   radius: 20,
-          //   backgroundImage: AssetImage(AppImages.profile),
-          // ),
+          CircleAvatar(
+            radius: 20,
+            child: SvgPicture.asset(AppImages.profile, width: 40, height: 40),
+          ),
         ],
       ),
     );
