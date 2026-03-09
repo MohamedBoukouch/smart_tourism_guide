@@ -1,42 +1,131 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'dart:ui' as ui;
+import 'package:smart_tourism_guide/app/modules/MapPage/models/TouristPlace.dart';
+import 'package:smart_tourism_guide/app/modules/MapPage/views/PlaceDetailPage.dart';
+import 'package:smart_tourism_guide/app/modules/MapPage/widgets/PlaceCardMarker.dart';
 import 'package:smart_tourism_guide/app/widgets/CustomAppBar.dart';
 import 'package:smart_tourism_guide/app/widgets/back_icon.dart';
 import '../controllers/map_page_controller.dart';
 import '../widgets/map_filter.dart';
 import '../widgets/map_location.dart';
 
-class MapPageView extends GetView<MapPageController> {
+class MapPageView extends StatefulWidget {
   const MapPageView({Key? key}) : super(key: key);
+  @override
+  State<MapPageView> createState() => _MapPageViewState();
+}
+
+class _MapPageViewState extends State<MapPageView>
+    with SingleTickerProviderStateMixin {
+  final MapPageController controller = Get.put(MapPageController());
+  final Map<String, Offset?> _positions = {};
+  late final Ticker _ticker;
+  bool _updating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = createTicker((_) => _updatePositions());
+    _ticker.start();
+  }
+
+  @override
+  void dispose() {
+    _ticker.dispose();
+    super.dispose();
+  }
+
+  Future<void> _updatePositions() async {
+    if (_updating || controller.mapController == null) return;
+    _updating = true;
+    bool changed = false;
+    for (final place in controller.touristPlaces) {
+      try {
+        final sc = await controller.mapController!.getScreenCoordinate(
+          place.position,
+        );
+        final ratio = ui.window.devicePixelRatio;
+        final newOffset = Offset(sc.x / ratio, sc.y / ratio);
+        if (_positions[place.id] != newOffset) {
+          _positions[place.id] = newOffset;
+          changed = true;
+        }
+      } catch (_) {}
+    }
+    if (changed && mounted) setState(() {});
+    _updating = false;
+  }
 
   @override
   Widget build(BuildContext context) {
+    final screenW = MediaQuery.of(context).size.width;
+    final screenH = MediaQuery.of(context).size.height;
+    final double baseCardW = screenW * 0.75;
+    const double baseCardH = 114.0;
+
     return GetBuilder<MapPageController>(
-      init: MapPageController(),
-      builder: (controller) {
+      builder: (ctrl) {
         return Scaffold(
           appBar: CustomAppBar(),
           body: Stack(
             children: [
-              // ── Google Map ───────────────────────────────────────────
-              Obx(
-                () => GoogleMap(
-                  initialCameraPosition: controller.initialPosition,
-                  markers: Set<Marker>.from(controller.markers),
-                  circles: Set<Circle>.from(controller.circles),
-                  myLocationEnabled: false,
-                  myLocationButtonEnabled: false,
-                  zoomControlsEnabled: false,
-                  onMapCreated: (ctrl) => controller.mapController = ctrl,
-                  onTap: (_) => controller.dismissCard(),
+              Positioned.fill(
+                child: Obx(
+                  () => GoogleMap(
+                    initialCameraPosition: ctrl.initialPosition,
+                    markers: Set<Marker>.from(ctrl.markers),
+                    circles: Set<Circle>.from(ctrl.circles),
+                    myLocationEnabled: false,
+                    myLocationButtonEnabled: false,
+                    zoomControlsEnabled: false,
+                    onMapCreated: (mapCtrl) {
+                      ctrl.mapController = mapCtrl;
+                      ctrl.onMapCreatedReady();
+                    },
+                    onCameraMove: (_) => ctrl.refreshZoom(),
+                    onCameraIdle: () => ctrl.refreshZoom(),
+                  ),
                 ),
               ),
-
-              // ── Back button ──────────────────────────────────────────
+              Obx(() {
+                final scale = ctrl.cardScale;
+                final scaledCardW = baseCardW * scale;
+                final scaledCardH = baseCardH * scale;
+                return Stack(
+                  children: ctrl.touristPlaces.map((place) {
+                    final Offset? pos = _positions[place.id];
+                    final double left = pos != null
+                        ? pos.dx - scaledCardW / 2
+                        : screenW / 2 - scaledCardW / 2;
+                    final double top = pos != null
+                        ? pos.dy - scaledCardH
+                        : screenH / 2 - scaledCardH;
+                    return Positioned(
+                      left: left,
+                      top: top,
+                      child: Transform.scale(
+                        scale: scale,
+                        alignment: Alignment.bottomCenter,
+                        child: PlaceCardMarker(
+                          imagePath: place.imageAsset,
+                          name: place.name,
+                          distance: place.distance,
+                          podcasts: place.podcasts,
+                          onTap: () => Get.to(
+                            () => PlaceDetailPage(place: place),
+                            transition: Transition.downToUp,
+                            duration: const Duration(milliseconds: 400),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                );
+              }),
               const Positioned(top: 16, left: 16, child: BackIcon()),
-
-              // ── Right top buttons ────────────────────────────────────
               Positioned(
                 top: 16,
                 right: 16,
@@ -48,31 +137,17 @@ class MapPageView extends GetView<MapPageController> {
                   ],
                 ),
               ),
-
-              // ── Zoom buttons bottom right ────────────────────────────
               Positioned(
-                bottom: 120,
+                bottom: 40,
                 right: 16,
                 child: Column(
                   children: [
-                    _ZoomButton(icon: Icons.add, onTap: controller.zoomIn),
+                    _ZoomButton(icon: Icons.add, onTap: ctrl.zoomIn),
                     const SizedBox(height: 8),
-                    _ZoomButton(icon: Icons.remove, onTap: controller.zoomOut),
+                    _ZoomButton(icon: Icons.remove, onTap: ctrl.zoomOut),
                   ],
                 ),
               ),
-
-              // ── Tourist place info card ──────────────────────────────
-              Obx(() {
-                final place = controller.selectedPlace.value;
-                if (place == null) return const SizedBox.shrink();
-                return Positioned(
-                  bottom: 40,
-                  left: 20,
-                  right: 20,
-                  child: _PlaceCard(place: place),
-                );
-              }),
             ],
           ),
         );
@@ -81,14 +156,10 @@ class MapPageView extends GetView<MapPageController> {
   }
 }
 
-// ─── Zoom Button ──────────────────────────────────────────────────────────────
-
 class _ZoomButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
-
   const _ZoomButton({required this.icon, required this.onTap});
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -108,106 +179,6 @@ class _ZoomButton extends StatelessWidget {
           ],
         ),
         child: Icon(icon, size: 22, color: Colors.black87),
-      ),
-    );
-  }
-}
-
-// ─── Place Info Card ──────────────────────────────────────────────────────────
-
-class _PlaceCard extends StatelessWidget {
-  final TouristPlace place;
-
-  const _PlaceCard({required this.place});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFFFF),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.15),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(16),
-              bottomLeft: Radius.circular(16),
-            ),
-            child: Image.asset(
-              place.imageAsset,
-              width: 90,
-              height: 80,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
-                width: 90,
-                height: 80,
-                color: Colors.grey[200],
-                child: const Icon(Icons.image, color: Colors.grey),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    place.name,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on_outlined,
-                        size: 14,
-                        color: Colors.grey,
-                      ),
-                      const SizedBox(width: 3),
-                      Text(
-                        place.distance,
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                      const SizedBox(width: 12),
-                      Container(
-                        width: 22,
-                        height: 22,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFFFFC107),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.play_arrow,
-                          size: 14,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(width: 5),
-                      Text(
-                        '${place.podcasts} Podcasts',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-        ],
       ),
     );
   }
