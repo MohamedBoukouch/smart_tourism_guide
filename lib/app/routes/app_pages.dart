@@ -12,15 +12,23 @@ import '../modules/login/bindings/login_binding.dart';
 import '../modules/login/views/login_view.dart';
 import '../modules/signup/bindings/signup_binding.dart';
 import '../modules/signup/views/signup_view.dart';
+import '../modules/splash/bindings/splash_binding.dart';
+import '../modules/splash/views/splash_view.dart';
+import '../modules/signup/views/signup_form_view.dart';
 
 part 'app_routes.dart';
 
 class AppPages {
   AppPages._();
 
-  static const INITIAL = Routes.HOME;
+  static const INITIAL = '/';
 
   static final routes = [
+     GetPage(
+      name: '/',
+      page: () => const SplashView(),
+      binding: SplashBinding(),
+    ),
     GetPage(
       name: _Paths.HOME,
       page: () => const HomeView(),
@@ -35,6 +43,12 @@ class AppPages {
       name: _Paths.SIGNUP,
       page: () => const SignupView(),
       binding: SignupBinding(),
+    ),
+
+    GetPage(
+      name: _Paths.SIGNUP_FORM,
+      page: () => const SignupFormView(),
+      binding: SignupBinding(), // même controller
     ),
     GetPage(
       name: _Paths.FAVORITE_PAGE,

@@ -3,9 +3,11 @@ part of 'app_pages.dart';
 
 abstract class Routes {
   Routes._();
+
   static const HOME = _Paths.HOME;
   static const LOGIN = _Paths.LOGIN;
   static const SIGNUP = _Paths.SIGNUP;
+  static const SIGNUP_FORM = _Paths.SIGNUP_FORM; // ✅ AJOUT
   static const FAVORITE_PAGE = _Paths.FAVORITE_PAGE;
   static const SETTINGS_PAGE = _Paths.SETTINGS_PAGE;
   static const MAP_PAGE = _Paths.MAP_PAGE;
@@ -13,9 +15,11 @@ abstract class Routes {
 
 abstract class _Paths {
   _Paths._();
+
   static const HOME = '/home';
   static const LOGIN = '/login';
   static const SIGNUP = '/signup';
+  static const SIGNUP_FORM = '/signup-form'; // ✅ AJOUT
   static const FAVORITE_PAGE = '/favorite-page';
   static const SETTINGS_PAGE = '/settings-page';
   static const MAP_PAGE = '/map-page';

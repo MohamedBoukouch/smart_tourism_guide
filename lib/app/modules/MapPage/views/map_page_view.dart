@@ -5,7 +5,7 @@ import 'package:smart_tourism_guide/app/widgets/CustomAppBar.dart';
 import '../controllers/map_page_controller.dart';
 
 class MapPageView extends GetView<MapPageController> {
-  const MapPageView({Key? key}) : super(key: key);
+  const MapPageView({super.key});
 
   @override
   Widget build(BuildContext context) {

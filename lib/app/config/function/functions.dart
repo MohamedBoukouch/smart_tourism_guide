@@ -10,7 +10,7 @@ import "../themes/app_theme.dart";
 class AppFunction {
   AppFunction._();
 
-  static get configureDependencies {
+  static void get configureDependencies {
     SystemChrome.setPreferredOrientations(<DeviceOrientation>[
       DeviceOrientation.portraitUp,
     ]);
@@ -26,7 +26,7 @@ class AppFunction {
     );
   }
 
-  static cancel() {
+  static TextButton cancel() {
     return TextButton(
       child: const Text(
         "Cancel",

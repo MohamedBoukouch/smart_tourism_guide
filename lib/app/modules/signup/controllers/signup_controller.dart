@@ -1,23 +1,110 @@
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
-class SignupController extends GetxController {
-  //TODO: Implement SignupController
+import '../../../routes/app_pages.dart';
+import '../../../domain/models/user.dart';
+import '../../../domain/enums/user_role.dart';
 
-  final count = 0.obs;
-  @override
-  void onInit() {
-    super.onInit();
+class SignupController extends GetxController {
+
+  /// --- FORM STATE ---
+  final role = UserRole.visiteur.obs;
+
+  final emailController = TextEditingController();
+  final usernameController = TextEditingController();
+  final passwordController = TextEditingController();
+  final confirmPasswordController = TextEditingController(); // Added
+
+  final isSubmitting = false.obs;
+  final obscurePassword = true.obs; // Added for password visibility toggle
+  final obscureConfirmPassword = true.obs; // Added for confirm password visibility toggle
+
+  /// --- ROLE ---
+  void selectRole(UserRole value) {
+    role.value = value;
   }
 
-  @override
-  void onReady() {
-    super.onReady();
+  /// --- PASSWORD VISIBILITY TOGGLE ---
+  void togglePasswordVisibility() {
+    obscurePassword.toggle();
+  }
+
+  void toggleConfirmPasswordVisibility() {
+    obscureConfirmPassword.toggle();
+  }
+
+  /// --- NAVIGATION ---
+  void goToSignupForm() {
+    Get.toNamed(Routes.SIGNUP_FORM);
+  }
+
+  void goBack() {
+    Get.back();
+  }
+
+  /// --- VALIDATION ---
+  bool get isFormValid {
+    return emailController.text.isEmail &&
+        usernameController.text.isNotEmpty &&
+        passwordController.text.length >= 6 &&
+        passwordController.text == confirmPasswordController.text; // Added password match check
+  }
+
+  bool get doPasswordsMatch {
+    return passwordController.text == confirmPasswordController.text;
+  }
+
+  String? get passwordErrorText {
+    if (confirmPasswordController.text.isEmpty) return null;
+    if (!doPasswordsMatch) return "Les mots de passe ne correspondent pas";
+    return null;
+  }
+
+  /// --- BUILD USER (équivalent Java: new User(...)) ---
+  User buildUser() {
+    return User(
+      email: emailController.text.trim(),
+      username: usernameController.text.trim(),
+      password: passwordController.text,
+      role: role.value,
+    );
+  }
+
+  /// --- SUBMIT ---
+  Future<void> submitSignup() async {
+    if (!isFormValid) return;
+
+    isSubmitting.value = true;
+
+    final user = buildUser();
+
+    // TODO: send user to API / Firebase / Repository
+    // await authRepository.signup(user);
+    
+    // Simulate API call (remove this in production)
+    await Future.delayed(const Duration(seconds: 2));
+
+    isSubmitting.value = false;
+    
+    // TODO: Navigate to next screen on success
+    // Get.offAllNamed(Routes.HOME);
+  }
+
+  /// --- CLEAR FORM (optional) ---
+  void clearForm() {
+    emailController.clear();
+    usernameController.clear();
+    passwordController.clear();
+    confirmPasswordController.clear();
+    role.value = UserRole.visiteur;
   }
 
   @override
   void onClose() {
+    emailController.dispose();
+    usernameController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose(); // Added
     super.onClose();
   }
-
-  void increment() => count.value++;
 }
