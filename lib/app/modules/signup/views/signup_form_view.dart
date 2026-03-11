@@ -12,14 +12,25 @@ class SignupFormView extends GetView<SignupController> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(
+            Icons.arrow_back,
+            color: Color(0xFFFFB300),
+          ),
+          onPressed: () => controller.goBack(),
+        ),
+        title: const SignupLogoText(height: 30, width: 120),
+        centerTitle: true,
+      ),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
             children: [
               const SizedBox(height: 20),
-              const SignupLogoText(height: 30, width: 120),
-              const SizedBox(height: 30),
               const RoleSelector(),
               const SizedBox(height: 30),
               

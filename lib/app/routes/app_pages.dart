@@ -10,6 +10,7 @@ import '../modules/home/bindings/home_binding.dart';
 import '../modules/home/views/home_view.dart';
 import '../modules/login/bindings/login_binding.dart';
 import '../modules/login/views/login_view.dart';
+import '../modules/login/views/forgot_password_view.dart'; // ✅ AJOUTER
 import '../modules/signup/bindings/signup_binding.dart';
 import '../modules/signup/views/signup_view.dart';
 import '../modules/splash/bindings/splash_binding.dart';
@@ -24,7 +25,7 @@ class AppPages {
   static const INITIAL = '/';
 
   static final routes = [
-     GetPage(
+    GetPage(
       name: '/',
       page: () => const SplashView(),
       binding: SplashBinding(),
@@ -44,11 +45,16 @@ class AppPages {
       page: () => const SignupView(),
       binding: SignupBinding(),
     ),
-
     GetPage(
       name: _Paths.SIGNUP_FORM,
       page: () => const SignupFormView(),
-      binding: SignupBinding(), // même controller
+      binding: SignupBinding(),
+    ),
+    // ✅ NOUVEAU: Route pour Forgot Password
+    GetPage(
+      name: _Paths.FORGOT_PASSWORD,
+      page: () => const ForgotPasswordView(),
+      binding: LoginBinding(), // Réutilise le binding de Login
     ),
     GetPage(
       name: _Paths.FAVORITE_PAGE,
