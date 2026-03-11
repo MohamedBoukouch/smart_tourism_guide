@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -5,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:smart_tourism_guide/app/config/images/app_images.dart';
+import 'package:smart_tourism_guide/app/modules/MapPage/models/PlacesApiService.dart';
 import 'package:smart_tourism_guide/app/modules/MapPage/models/TouristPlace.dart';
 import 'package:smart_tourism_guide/app/modules/MapPage/widgets/position_location.dart';
 
@@ -12,15 +14,29 @@ class MapPageController extends GetxController {
   GoogleMapController? mapController;
 
   final CameraPosition initialPosition = const CameraPosition(
-    target: LatLng(37.379510, -122.104010),
+    target: LatLng(37.437072, -122.149775),
     zoom: 15,
   );
 
   final RxSet<Marker> markers = <Marker>{}.obs;
   final RxSet<Circle> circles = <Circle>{}.obs;
+  final RxSet<Polyline> polylines = <Polyline>{}.obs;
   final RxDouble currentZoom = 15.0.obs;
 
-  LatLng? _myLocation;
+  // Route state
+  final RxString routeDistance = ''.obs;
+  final RxString routeDuration = ''.obs;
+  final RxBool hasRoute = false.obs;
+  final RxBool isNavigating = false.obs;
+
+  // When true — camera follows user. Tap map to unlock (user can pan freely)
+  final RxBool followCamera = true.obs;
+
+  LatLng? _destination;
+  String _destinationName = '';
+  LatLng? currentLocation;
+  StreamSubscription? _locationSub;
+  BitmapDescriptor? _userIcon;
 
   List<TouristPlace> get touristPlaces => staticTouristPlaces;
 
@@ -32,48 +48,314 @@ class MapPageController extends GetxController {
   @override
   void onReady() {
     super.onReady();
-    _askUserLocationPermission();
+    _fetchUserLocation();
   }
 
-  void onMapCreatedReady() {
-    Future.delayed(const Duration(milliseconds: 400), refreshZoom);
+  @override
+  void onClose() {
+    _locationSub?.cancel();
+    super.onClose();
   }
+
+  void onMapCreatedReady() =>
+      Future.delayed(const Duration(milliseconds: 400), refreshZoom);
 
   Future<void> refreshZoom() async {
     if (mapController == null) return;
-    final zoom = await mapController!.getZoomLevel();
-    currentZoom.value = zoom;
+    currentZoom.value = await mapController!.getZoomLevel();
   }
 
   void zoomIn() async {
-    final zoom = await mapController?.getZoomLevel() ?? 15.0;
-    mapController?.animateCamera(CameraUpdate.zoomTo(zoom + 1));
+    final z = await mapController?.getZoomLevel() ?? 15.0;
+    mapController?.animateCamera(CameraUpdate.zoomTo(z + 1));
   }
 
   void zoomOut() async {
-    final zoom = await mapController?.getZoomLevel() ?? 15.0;
-    mapController?.animateCamera(CameraUpdate.zoomTo(zoom - 1));
+    final z = await mapController?.getZoomLevel() ?? 15.0;
+    mapController?.animateCamera(CameraUpdate.zoomTo(z - 1));
   }
 
-  void _askUserLocationPermission() {
-    Get.dialog(
-      PositionLocation(
-        onAuthorize: () {
-          Get.back();
-          _fetchUserLocation();
-        },
-        onDeny: () => Get.back(),
+  // User tapped map → stop following so they can pan freely
+  void onMapTapped() {
+    if (isNavigating.value) followCamera.value = false;
+  }
+
+  // ── Navigate to a nearby place ────────────────────────────────────────────
+  Future<void> moveToNearbyPlace(NearbyPlace place) async {
+    _destination = place.position;
+    _destinationName = place.name;
+
+    await _dropDestinationPin(place.position, place.name);
+
+    if (currentLocation != null) {
+      await _drawRoute(currentLocation!, place.position);
+      // Fit camera to show full route
+      _fitBounds([currentLocation!, place.position]);
+    }
+  }
+
+  // ── Start GPS tracking ────────────────────────────────────────────────────
+  void startNavigation() {
+    if (_destination == null) return;
+    isNavigating.value = true;
+    followCamera.value = true; // re-enable camera follow on start
+
+    _locationSub?.cancel();
+    _locationSub = Geolocator.getPositionStream(
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.bestForNavigation,
+        distanceFilter: 8, // update every 8 meters
       ),
-      barrierDismissible: false,
+    ).listen(_onLocationUpdate);
+  }
+
+  // ── Stop navigation ───────────────────────────────────────────────────────
+  void stopNavigation() {
+    _locationSub?.cancel();
+    _locationSub = null;
+    isNavigating.value = false;
+    followCamera.value = false;
+    _destination = null;
+    _destinationName = '';
+    clearRoute();
+    // Reset camera to normal view
+    if (currentLocation != null) {
+      mapController?.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: currentLocation!,
+            zoom: 15,
+            tilt: 0,
+            bearing: 0,
+          ),
+        ),
+      );
+    }
+  }
+
+  // ── Re-enable follow + fit route ──────────────────────────────────────────
+  void fitRoute() {
+    followCamera.value = true;
+    if (currentLocation != null && _destination != null) {
+      _fitBounds([currentLocation!, _destination!]);
+    } else if (currentLocation != null) {
+      mapController?.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(target: currentLocation!, zoom: 18, tilt: 60),
+        ),
+      );
+    }
+  }
+
+  // ── Called every 8 meters moved ───────────────────────────────────────────
+  Future<void> _onLocationUpdate(Position pos) async {
+    currentLocation = LatLng(pos.latitude, pos.longitude);
+
+    // Update user dot on map
+    _updateUserMarker(currentLocation!, pos.heading);
+
+    if (_destination == null) return;
+
+    // Check arrival (within 25m)
+    final dist = Geolocator.distanceBetween(
+      pos.latitude,
+      pos.longitude,
+      _destination!.latitude,
+      _destination!.longitude,
+    );
+
+    if (dist <= 25) {
+      _onArrived();
+      return;
+    }
+
+    // Redraw remaining route
+    await _drawRoute(currentLocation!, _destination!);
+
+    // Follow camera only if user hasn't manually panned away
+    if (followCamera.value) {
+      mapController?.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: currentLocation!,
+            zoom: 18,
+            tilt: 55,
+            bearing: pos.heading, // rotates map in direction of travel
+          ),
+        ),
+      );
+    }
+  }
+
+  void _updateUserMarker(LatLng pos, double heading) {
+    markers.removeWhere((m) => m.markerId.value == 'me');
+    markers.add(
+      Marker(
+        markerId: const MarkerId('me'),
+        position: pos,
+        icon:
+            _userIcon ??
+            BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+        zIndex: 10,
+        flat: true,
+        anchor: const Offset(0.5, 0.5),
+        rotation: heading,
+      ),
     );
   }
 
-  Future<void> _fetchUserLocation() async {
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
+  void _onArrived() {
+    _locationSub?.cancel();
+    isNavigating.value = false;
+    Get.snackbar(
+      '🎉  Arrived!',
+      'You have reached $_destinationName',
+      snackPosition: SnackPosition.TOP,
+      backgroundColor: const Color(0xFF4CAF50),
+      colorText: Colors.white,
+      margin: const EdgeInsets.all(16),
+      borderRadius: 14,
+      duration: const Duration(seconds: 4),
+    );
+    clearRoute();
+    // Reset tilt/bearing
+    if (currentLocation != null) {
+      mapController?.animateCamera(
+        CameraUpdate.newCameraPosition(
+          CameraPosition(
+            target: currentLocation!,
+            zoom: 16,
+            tilt: 0,
+            bearing: 0,
+          ),
+        ),
+      );
     }
-    if (permission == LocationPermission.deniedForever) {
+  }
+
+  // ── Draw polyline ─────────────────────────────────────────────────────────
+  Future<void> _drawRoute(LatLng origin, LatLng dest) async {
+    final result = await PlacesApiService.getRoute(
+      origin: origin,
+      destination: dest,
+      mode: 'walking',
+    );
+    if (result == null) return;
+
+    polylines.clear();
+
+    // Grey shadow
+    polylines.add(
+      Polyline(
+        polylineId: const PolylineId('route_shadow'),
+        points: result.polylinePoints,
+        color: Colors.grey.shade300,
+        width: 9,
+        startCap: Cap.roundCap,
+        endCap: Cap.roundCap,
+      ),
+    );
+
+    // Orange main line
+    polylines.add(
+      Polyline(
+        polylineId: const PolylineId('route'),
+        points: result.polylinePoints,
+        color: const Color(0xFFFF6B35),
+        width: 5,
+        startCap: Cap.roundCap,
+        endCap: Cap.roundCap,
+        jointType: JointType.round,
+      ),
+    );
+
+    routeDistance.value = result.distance;
+    routeDuration.value = result.duration;
+    hasRoute.value = true;
+  }
+
+  void clearRoute() {
+    polylines.clear();
+    markers.removeWhere((m) => m.markerId.value == 'destination');
+    hasRoute.value = false;
+    routeDistance.value = '';
+    routeDuration.value = '';
+  }
+
+  void _fitBounds(List<LatLng> points) {
+    double minLat = points[0].latitude, maxLat = points[0].latitude;
+    double minLng = points[0].longitude, maxLng = points[0].longitude;
+    for (final p in points) {
+      if (p.latitude < minLat) minLat = p.latitude;
+      if (p.latitude > maxLat) maxLat = p.latitude;
+      if (p.longitude < minLng) minLng = p.longitude;
+      if (p.longitude > maxLng) maxLng = p.longitude;
+    }
+    mapController?.animateCamera(
+      CameraUpdate.newLatLngBounds(
+        LatLngBounds(
+          southwest: LatLng(minLat, minLng),
+          northeast: LatLng(maxLat, maxLng),
+        ),
+        90,
+      ),
+    );
+  }
+
+  Future<void> _dropDestinationPin(LatLng pos, String title) async {
+    markers.removeWhere((m) => m.markerId.value == 'destination');
+    final icon = await _buildOrangePin();
+    markers.add(
+      Marker(
+        markerId: const MarkerId('destination'),
+        position: pos,
+        icon: icon,
+        infoWindow: InfoWindow(title: title),
+        zIndex: 5,
+      ),
+    );
+  }
+
+  Future<BitmapDescriptor> _buildOrangePin() async {
+    const double w = 44, h = 58;
+    final rec = ui.PictureRecorder();
+    final canvas = Canvas(rec);
+    canvas.drawOval(
+      Rect.fromCenter(center: Offset(w / 2, h - 3), width: 20, height: 7),
+      Paint()..color = Colors.black26,
+    );
+    final path = Path()
+      ..moveTo(w / 2, h)
+      ..quadraticBezierTo(2, h * 0.58, 2, h * 0.37)
+      ..arcToPoint(
+        Offset(w - 2, h * 0.37),
+        radius: const Radius.circular(22),
+        clockwise: false,
+      )
+      ..quadraticBezierTo(w - 2, h * 0.58, w / 2, h)
+      ..close();
+    canvas.drawPath(path, Paint()..color = const Color(0xFFFF6B35));
+    canvas.drawCircle(
+      Offset(w / 2, h * 0.35),
+      12,
+      Paint()..color = Colors.white,
+    );
+    canvas.drawCircle(
+      Offset(w / 2, h * 0.35),
+      5,
+      Paint()..color = const Color(0xFFFF6B35),
+    );
+    final img = await rec.endRecording().toImage(w.toInt(), h.toInt());
+    final bytes = await img.toByteData(format: ui.ImageByteFormat.png);
+    return BitmapDescriptor.fromBytes(bytes!.buffer.asUint8List());
+  }
+
+  Future<void> _fetchUserLocation() async {
+    var perm = await Geolocator.checkPermission();
+    if (perm == LocationPermission.denied) {
+      perm = await Geolocator.requestPermission();
+    }
+    if (perm == LocationPermission.deniedForever) {
       Get.snackbar(
         'Permission refusée',
         'Activez la localisation dans les paramètres.',
@@ -81,17 +363,35 @@ class MapPageController extends GetxController {
       );
       return;
     }
+
     final pos = await Geolocator.getCurrentPosition(
       desiredAccuracy: LocationAccuracy.high,
     );
-    _myLocation = LatLng(pos.latitude, pos.longitude);
-    final userIcon = await _svgToBitmap(AppImages.map_location, size: 72);
+    currentLocation = LatLng(pos.latitude, pos.longitude);
+
+    try {
+      _userIcon = await _svgToBitmap(AppImages.map_location, size: 72);
+    } catch (_) {
+      _userIcon = BitmapDescriptor.defaultMarkerWithHue(
+        BitmapDescriptor.hueAzure,
+      );
+    }
+
     markers.add(
       Marker(
         markerId: const MarkerId('me'),
-        position: _myLocation!,
-        icon: userIcon,
+        position: currentLocation!,
+        icon: _userIcon!,
         zIndex: 10,
+        flat: true,
+        anchor: const Offset(0.5, 0.5),
+      ),
+    );
+
+    // Move camera to user location on start
+    mapController?.animateCamera(
+      CameraUpdate.newCameraPosition(
+        CameraPosition(target: currentLocation!, zoom: 15),
       ),
     );
     update();
@@ -101,16 +401,13 @@ class MapPageController extends GetxController {
     String assetPath, {
     double size = 72,
   }) async {
-    final pictureInfo = await vg.loadPicture(SvgAssetLoader(assetPath), null);
-    final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder);
-    canvas.scale(size / pictureInfo.size.width, size / pictureInfo.size.height);
-    canvas.drawPicture(pictureInfo.picture);
-    pictureInfo.picture.dispose();
-    final img = await recorder.endRecording().toImage(
-      size.toInt(),
-      size.toInt(),
-    );
+    final info = await vg.loadPicture(SvgAssetLoader(assetPath), null);
+    final rec = ui.PictureRecorder();
+    final canvas = Canvas(rec);
+    canvas.scale(size / info.size.width, size / info.size.height);
+    canvas.drawPicture(info.picture);
+    info.picture.dispose();
+    final img = await rec.endRecording().toImage(size.toInt(), size.toInt());
     final bytes = await img.toByteData(format: ui.ImageByteFormat.png);
     return BitmapDescriptor.fromBytes(bytes!.buffer.asUint8List());
   }

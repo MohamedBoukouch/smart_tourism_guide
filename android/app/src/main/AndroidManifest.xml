@@ -2,6 +2,10 @@
 
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+    
     
     <application
         android:label="smart_tourism_guide"
@@ -38,6 +42,7 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyDSvZTkvK9FDnGHoL1ZKdqeLu8K3oaMotI"/>
+            
 
     </application>
     <!-- Required to query activities that can process text, see:
