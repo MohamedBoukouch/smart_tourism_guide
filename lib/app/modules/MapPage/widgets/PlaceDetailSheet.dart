@@ -82,9 +82,18 @@ class _PlaceDetailSheetState extends State<PlaceDetailSheet>
   @override
   Widget build(BuildContext context) {
     final place = widget.place;
-    final catColor = _categoryColor(place.category);
-    final totalMedia = place.images.length + (place.videoUrl != null ? 1 : 0);
-    final extraCount = totalMedia > 4 ? totalMedia - 4 : 0;
+
+    // ✅ category is a String in the model — parse it to enum here
+    final PlaceCategory cat = TouristPlace.parseCategory(place.category);
+    final catColor = _categoryColor(cat);
+
+    // ✅ videoUrls is List<String> — use .isNotEmpty instead of != null
+    final bool hasVideo = place.videoUrls.isNotEmpty;
+
+    // ✅ total media = images + video count
+    final int totalMedia =
+        place.images.length + (hasVideo ? place.videoUrls.length : 0);
+    final int extraCount = totalMedia > 4 ? totalMedia - 4 : 0;
 
     return FadeTransition(
       opacity: _fadeAnim,
@@ -128,7 +137,8 @@ class _PlaceDetailSheetState extends State<PlaceDetailSheet>
                       topRight: Radius.circular(20),
                     ),
                     child: _PlaceImage(
-                      assetPath: place.images.isNotEmpty
+                      // ✅ imageAsset is now a URL from Firestore — use Image.network
+                      imageUrl: place.images.isNotEmpty
                           ? place.images[_selectedImageIndex]
                           : place.imageAsset,
                       height: 200,
@@ -170,7 +180,7 @@ class _PlaceDetailSheetState extends State<PlaceDetailSheet>
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        _categoryLabel(place.category),
+                        _categoryLabel(cat), // ✅ uses parsed enum
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 11,
@@ -200,7 +210,7 @@ class _PlaceDetailSheetState extends State<PlaceDetailSheet>
                               child: Stack(
                                 children: [
                                   _PlaceImage(
-                                    assetPath: place.images[i],
+                                    imageUrl: place.images[i], // ✅ network URL
                                     height: 54,
                                     width: 70,
                                   ),
@@ -225,13 +235,13 @@ class _PlaceDetailSheetState extends State<PlaceDetailSheet>
                         ),
 
                       // "+N more" tile
-                      if (extraCount > 0)
+                      if (extraCount > 0 && place.images.length > 3)
                         ClipRRect(
                           borderRadius: BorderRadius.circular(8),
                           child: Stack(
                             children: [
                               _PlaceImage(
-                                assetPath: place.images[3],
+                                imageUrl: place.images[3], // ✅ network URL
                                 height: 54,
                                 width: 70,
                               ),
@@ -255,8 +265,8 @@ class _PlaceDetailSheetState extends State<PlaceDetailSheet>
 
                       const Spacer(),
 
-                      // Video badge if available
-                      if (place.videoUrl != null) _VideoBadge(color: catColor),
+                      // ✅ Video badge — uses videoUrls.isNotEmpty
+                      if (hasVideo) _VideoBadge(color: catColor),
                     ],
                   ),
                 ),
@@ -316,47 +326,50 @@ class _PlaceDetailSheetState extends State<PlaceDetailSheet>
                       color: Colors.grey[600]!,
                     ),
                     const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFFF3E0),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 20,
-                            height: 20,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFFFC107),
-                              shape: BoxShape.circle,
+                    // ✅ podcasts field removed — show video count instead
+                    if (hasVideo)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFF3E0),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 20,
+                              height: 20,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFFFC107),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.play_arrow,
+                                size: 13,
+                                color: Colors.white,
+                              ),
                             ),
-                            child: const Icon(
-                              Icons.play_arrow,
-                              size: 13,
-                              color: Colors.white,
+                            const SizedBox(width: 5),
+                            Text(
+                              // ✅ shows actual video count from videoUrls
+                              '${place.videoUrls.length} Vidéo${place.videoUrls.length > 1 ? 's' : ''}',
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF795548),
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 5),
-                          Text(
-                            '${place.podcasts} Podcasts',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF795548),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
 
-              // ── Address ──────────────────────────────────────────────
+              // ── Address (from localisation list) ─────────────────────
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 6, 16, 0),
                 child: Row(
@@ -365,7 +378,11 @@ class _PlaceDetailSheetState extends State<PlaceDetailSheet>
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(
-                        place.address,
+                        // ✅ localisation is List<String> of [lat, lng]
+                        // Display them as coordinates or use a reverse geocoded address
+                        place.localisation.isNotEmpty
+                            ? place.localisation.join(', ')
+                            : 'Localisation non disponible',
                         style: TextStyle(fontSize: 11, color: Colors.grey[500]),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -489,32 +506,47 @@ class _VideoBadge extends StatelessWidget {
   }
 }
 
-/// Displays an asset image with a grey fallback
+/// ✅ Displays a NETWORK image (URLs from Firestore) with a grey fallback.
+/// Previously used Image.asset — updated to Image.network.
 class _PlaceImage extends StatelessWidget {
-  final String assetPath;
+  final String imageUrl;
   final double height;
   final double width;
 
   const _PlaceImage({
-    required this.assetPath,
+    required this.imageUrl,
     required this.height,
     required this.width,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
-      assetPath,
+    return Image.network(
+      imageUrl,
       height: height,
       width: width,
       fit: BoxFit.cover,
+      loadingBuilder: (_, child, progress) {
+        if (progress == null) return child;
+        return Container(
+          height: height,
+          width: width,
+          color: const Color(0xFFEEEEEE),
+          child: const Center(
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: Color(0xFFFF6B35),
+            ),
+          ),
+        );
+      },
       errorBuilder: (_, __, ___) => Container(
         height: height,
         width: width,
         color: const Color(0xFFEEEEEE),
-        child: Column(
+        child: const Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
+          children: [
             Icon(Icons.image_outlined, color: Color(0xFFBDBDBD), size: 28),
           ],
         ),

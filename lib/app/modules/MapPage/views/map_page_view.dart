@@ -46,7 +46,7 @@ class _MapPageViewState extends State<MapPageView>
     for (final place in controller.touristPlaces) {
       try {
         final sc = await controller.mapController!.getScreenCoordinate(
-          place.position,
+          place.location, // ✅ was place.position — now uses the LatLng getter
         );
         final ratio = ui.window.devicePixelRatio;
         final newOffset = Offset(sc.x / ratio, sc.y / ratio);
@@ -122,7 +122,7 @@ class _MapPageViewState extends State<MapPageView>
                           imagePath: place.imageAsset,
                           name: place.name,
                           distance: place.distance,
-                          podcasts: place.podcasts,
+                          // ✅ podcasts removed — not in model
                           onTap: () => Get.to(
                             () => PlaceDetailPage(place: place),
                             transition: Transition.downToUp,
@@ -168,7 +168,6 @@ class _MapPageViewState extends State<MapPageView>
 
               // ── 5. Zoom +/- (always visible, above nav panel) ──────────
               Obx(() {
-                // bottom offset: 140 when panel is open, 40 otherwise
                 final bottomOffset = ctrl.hasRoute.value ? 150.0 : 40.0;
                 return Positioned(
                   bottom: bottomOffset,
@@ -202,7 +201,6 @@ class _MapPageViewState extends State<MapPageView>
 }
 
 // ─── Navigation bottom panel ──────────────────────────────────────────────────
-// Height is fixed at ~130px so the map stays visible above it
 
 class _NavPanel extends StatelessWidget {
   final MapPageController ctrl;
@@ -211,7 +209,6 @@ class _NavPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      // Fixed compact height — map stays fully visible above
       padding: EdgeInsets.fromLTRB(
         20,
         14,

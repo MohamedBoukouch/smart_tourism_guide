@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:ui' as ui;
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
@@ -8,7 +9,6 @@ import 'package:geolocator/geolocator.dart';
 import 'package:smart_tourism_guide/app/config/images/app_images.dart';
 import 'package:smart_tourism_guide/app/modules/MapPage/models/PlacesApiService.dart';
 import 'package:smart_tourism_guide/app/modules/MapPage/models/TouristPlace.dart';
-import 'package:smart_tourism_guide/app/modules/MapPage/widgets/position_location.dart';
 
 class MapPageController extends GetxController {
   GoogleMapController? mapController;
@@ -23,13 +23,14 @@ class MapPageController extends GetxController {
   final RxSet<Polyline> polylines = <Polyline>{}.obs;
   final RxDouble currentZoom = 15.0.obs;
 
-  // Route state
+  // ✅ Tourist places loaded from Firestore
+  final RxList<TouristPlace> _touristPlaces = <TouristPlace>[].obs;
+  List<TouristPlace> get touristPlaces => _touristPlaces;
+
   final RxString routeDistance = ''.obs;
   final RxString routeDuration = ''.obs;
   final RxBool hasRoute = false.obs;
   final RxBool isNavigating = false.obs;
-
-  // When true — camera follows user. Tap map to unlock (user can pan freely)
   final RxBool followCamera = true.obs;
 
   LatLng? _destination;
@@ -37,8 +38,6 @@ class MapPageController extends GetxController {
   LatLng? currentLocation;
   StreamSubscription? _locationSub;
   BitmapDescriptor? _userIcon;
-
-  List<TouristPlace> get touristPlaces => staticTouristPlaces;
 
   double get cardScale {
     final scale = 0.08 * (currentZoom.value - 15.0) + 1.0;
@@ -48,6 +47,7 @@ class MapPageController extends GetxController {
   @override
   void onReady() {
     super.onReady();
+    _fetchPlacesFromFirestore();
     _fetchUserLocation();
   }
 
@@ -55,6 +55,30 @@ class MapPageController extends GetxController {
   void onClose() {
     _locationSub?.cancel();
     super.onClose();
+  }
+
+  // ── Fetch from Firestore ──────────────────────────────────────────────────
+  Future<void> _fetchPlacesFromFirestore() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance
+          .collection('places')
+          .get();
+
+      // ✅ explicit <TouristPlace> type parameter fixes the List<dynamic> error
+      _touristPlaces.value = snapshot.docs
+          .map<TouristPlace>(
+            (doc) => TouristPlace.fromFirestore(doc.id, doc.data()),
+          )
+          .toList();
+
+      update();
+    } catch (e) {
+      Get.snackbar(
+        'Erreur',
+        'Impossible de charger les lieux : $e',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    }
   }
 
   void onMapCreatedReady() =>
@@ -75,41 +99,47 @@ class MapPageController extends GetxController {
     mapController?.animateCamera(CameraUpdate.zoomTo(z - 1));
   }
 
-  // User tapped map → stop following so they can pan freely
   void onMapTapped() {
     if (isNavigating.value) followCamera.value = false;
   }
 
-  // ── Navigate to a nearby place ────────────────────────────────────────────
+  // ── NearbyPlace navigation (from MapFilter — PlacesApiService model) ──────
+  // NearbyPlace.position is a LatLng field
   Future<void> moveToNearbyPlace(NearbyPlace place) async {
     _destination = place.position;
     _destinationName = place.name;
-
     await _dropDestinationPin(place.position, place.name);
-
     if (currentLocation != null) {
       await _drawRoute(currentLocation!, place.position);
-      // Fit camera to show full route
       _fitBounds([currentLocation!, place.position]);
     }
   }
 
-  // ── Start GPS tracking ────────────────────────────────────────────────────
+  // ── TouristPlace navigation (from Firestore / map cards) ─────────────────
+  // TouristPlace.location is a LatLng getter (LatLng(x, y))
+  Future<void> moveToPlace(TouristPlace place) async {
+    _destination = place.location;
+    _destinationName = place.name;
+    await _dropDestinationPin(place.location, place.name);
+    if (currentLocation != null) {
+      await _drawRoute(currentLocation!, place.location);
+      _fitBounds([currentLocation!, place.location]);
+    }
+  }
+
   void startNavigation() {
     if (_destination == null) return;
     isNavigating.value = true;
-    followCamera.value = true; // re-enable camera follow on start
-
+    followCamera.value = true;
     _locationSub?.cancel();
     _locationSub = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.bestForNavigation,
-        distanceFilter: 8, // update every 8 meters
+        distanceFilter: 8,
       ),
     ).listen(_onLocationUpdate);
   }
 
-  // ── Stop navigation ───────────────────────────────────────────────────────
   void stopNavigation() {
     _locationSub?.cancel();
     _locationSub = null;
@@ -118,7 +148,6 @@ class MapPageController extends GetxController {
     _destination = null;
     _destinationName = '';
     clearRoute();
-    // Reset camera to normal view
     if (currentLocation != null) {
       mapController?.animateCamera(
         CameraUpdate.newCameraPosition(
@@ -133,7 +162,6 @@ class MapPageController extends GetxController {
     }
   }
 
-  // ── Re-enable follow + fit route ──────────────────────────────────────────
   void fitRoute() {
     followCamera.value = true;
     if (currentLocation != null && _destination != null) {
@@ -147,16 +175,11 @@ class MapPageController extends GetxController {
     }
   }
 
-  // ── Called every 8 meters moved ───────────────────────────────────────────
   Future<void> _onLocationUpdate(Position pos) async {
     currentLocation = LatLng(pos.latitude, pos.longitude);
-
-    // Update user dot on map
     _updateUserMarker(currentLocation!, pos.heading);
-
     if (_destination == null) return;
 
-    // Check arrival (within 25m)
     final dist = Geolocator.distanceBetween(
       pos.latitude,
       pos.longitude,
@@ -169,10 +192,8 @@ class MapPageController extends GetxController {
       return;
     }
 
-    // Redraw remaining route
     await _drawRoute(currentLocation!, _destination!);
 
-    // Follow camera only if user hasn't manually panned away
     if (followCamera.value) {
       mapController?.animateCamera(
         CameraUpdate.newCameraPosition(
@@ -180,7 +201,7 @@ class MapPageController extends GetxController {
             target: currentLocation!,
             zoom: 18,
             tilt: 55,
-            bearing: pos.heading, // rotates map in direction of travel
+            bearing: pos.heading,
           ),
         ),
       );
@@ -218,7 +239,6 @@ class MapPageController extends GetxController {
       duration: const Duration(seconds: 4),
     );
     clearRoute();
-    // Reset tilt/bearing
     if (currentLocation != null) {
       mapController?.animateCamera(
         CameraUpdate.newCameraPosition(
@@ -233,7 +253,6 @@ class MapPageController extends GetxController {
     }
   }
 
-  // ── Draw polyline ─────────────────────────────────────────────────────────
   Future<void> _drawRoute(LatLng origin, LatLng dest) async {
     final result = await PlacesApiService.getRoute(
       origin: origin,
@@ -241,10 +260,7 @@ class MapPageController extends GetxController {
       mode: 'walking',
     );
     if (result == null) return;
-
     polylines.clear();
-
-    // Grey shadow
     polylines.add(
       Polyline(
         polylineId: const PolylineId('route_shadow'),
@@ -255,8 +271,6 @@ class MapPageController extends GetxController {
         endCap: Cap.roundCap,
       ),
     );
-
-    // Orange main line
     polylines.add(
       Polyline(
         polylineId: const PolylineId('route'),
@@ -268,7 +282,6 @@ class MapPageController extends GetxController {
         jointType: JointType.round,
       ),
     );
-
     routeDistance.value = result.distance;
     routeDuration.value = result.duration;
     hasRoute.value = true;
@@ -388,7 +401,6 @@ class MapPageController extends GetxController {
       ),
     );
 
-    // Move camera to user location on start
     mapController?.animateCamera(
       CameraUpdate.newCameraPosition(
         CameraPosition(target: currentLocation!, zoom: 15),

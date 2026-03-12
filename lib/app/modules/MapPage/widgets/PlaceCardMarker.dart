@@ -13,7 +13,7 @@ class PlaceCardMarker extends StatelessWidget {
     required this.imagePath,
     required this.name,
     required this.distance,
-    required this.podcasts,
+    this.podcasts = 0,
     this.onTap,
   });
 

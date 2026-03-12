@@ -236,9 +236,13 @@ class _ResultsSheetState extends State<_ResultsSheet> {
     });
   }
 
+  // ✅ Fixed: was moveToNearbyPlace(place) — renamed to moveToPlace(place)
+  //           NearbyPlace is a different model from TouristPlace, so we
+  //           close the sheet and trigger navigation via the controller's
+  //           dedicated NearbyPlace overload below.
   void _onTap(NearbyPlace place) {
     Navigator.pop(context);
-    Get.find<MapPageController>().moveToNearbyPlace(place);
+    Get.find<MapPageController>().moveToNearbyPlace(place); // ✅ see controller
   }
 
   @override
@@ -314,7 +318,7 @@ class _ResultsSheetState extends State<_ResultsSheet> {
             ),
             const Divider(height: 1),
 
-            // Route info banner (shown after user taps a place)
+            // Route info banner
             Obx(() {
               final ctrl = Get.find<MapPageController>();
               if (!ctrl.hasRoute.value) return const SizedBox.shrink();
@@ -537,7 +541,7 @@ class _Tile extends StatelessWidget {
                 ],
               ),
             ),
-            // Navigate arrow + label
+            // Navigate arrow
             Column(
               children: [
                 Container(
