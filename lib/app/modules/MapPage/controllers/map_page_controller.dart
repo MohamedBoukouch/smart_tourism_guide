@@ -14,7 +14,7 @@ class MapPageController extends GetxController {
   GoogleMapController? mapController;
 
   final CameraPosition initialPosition = const CameraPosition(
-    target: LatLng(37.437072, -122.149775),
+    target: LatLng(-122.154000, 37.443700),
     zoom: 15,
   );
 

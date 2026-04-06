@@ -128,7 +128,6 @@ class _MapPageViewState extends State<MapPageView>
                             transition: Transition.downToUp,
                             duration: const Duration(milliseconds: 400),
                           ),
-                          podcasts: 00,
                         ),
                       ),
                     );
