@@ -1,4 +1,5 @@
 import 'package:get/get.dart';
+import 'package:smart_tourism_guide/app/modules/login/bindings/forgot_password_binding.dart';
 
 import '../modules/FavoritePage/bindings/favorite_page_binding.dart';
 import '../modules/FavoritePage/views/favorite_page_view.dart';
@@ -22,7 +23,7 @@ part 'app_routes.dart';
 class AppPages {
   AppPages._();
 
-  static const INITIAL = _Paths.HOME;
+  static const INITIAL = '/';
 
   static final routes = [
     GetPage(
@@ -54,7 +55,7 @@ class AppPages {
     GetPage(
       name: _Paths.FORGOT_PASSWORD,
       page: () => const ForgotPasswordView(),
-      binding: LoginBinding(), // Réutilise le binding de Login
+      binding: ForgotPasswordBinding(), // ✅ binding séparé
     ),
     GetPage(
       name: _Paths.FAVORITE_PAGE,

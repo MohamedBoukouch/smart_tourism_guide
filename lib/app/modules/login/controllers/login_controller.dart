@@ -1,37 +1,58 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:smart_tourism_guide/app/config/services/auth_service.dart';
 import '../../../routes/app_pages.dart';
-import '../../../domain/models/user.dart';
 
 class LoginController extends GetxController {
-  /// --- FORM STATE ---
+  // --- FORM STATE ---
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-  
+
+  final AuthService authService = AuthService();
+
   final isSubmitting = false.obs;
   final obscurePassword = true.obs;
   final rememberMe = false.obs;
 
-  // Ajouter ces Rx pour la validation
+  // Validation Rx
   final isEmailValid = false.obs;
   final isPasswordValid = false.obs;
 
   @override
   void onInit() {
     super.onInit();
-    
-    // Ajouter des listeners pour mettre à jour la validation en temps réel
+
+    // ✅ Ajouter les listeners (pour la validation en temps réel)
     emailController.addListener(_validateEmail);
     passwordController.addListener(_validatePassword);
   }
 
+  @override
+  void onReady() {
+    super.onReady();
+
+    // ✅ FORCER une validation après le retour à l'écran
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _validateEmail();
+      _validatePassword();
+    });
+  }
+
+  // ✅ Rendre ces méthodes publiques pour qu'elles soient accessibles depuis LoginInput
   void _validateEmail() {
-    isEmailValid.value = emailController.text.isEmail;
+    final email = emailController.text.trim();
+    isEmailValid.value = email.isEmail;
   }
 
   void _validatePassword() {
-    isPasswordValid.value = passwordController.text.length >= 6;
+    final password = passwordController.text;
+    isPasswordValid.value = password.length >= 6;
   }
+
+  // ✅ Méthodes publiques pour la validation (appelées par LoginInput)
+  void validateEmail() => _validateEmail();
+  void validatePassword() => _validatePassword();
 
   /// --- VALIDATION ---
   bool get isFormValid {
@@ -67,19 +88,24 @@ class LoginController extends GetxController {
 
     isSubmitting.value = true;
 
-    // TODO: send login request to API / Firebase / Repository
-    // await authRepository.login(
-    //   emailController.text.trim(),
-    //   passwordController.text,
-    // );
-    
-    // Simulate API call
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      await authService.login(
+        emailController.text.trim(),
+        passwordController.text,
+      );
 
-    isSubmitting.value = false;
-    
-    // TODO: Navigate to home on success
-    // Get.offAllNamed(Routes.HOME);
+      Get.offAllNamed(Routes.HOME);
+    } on FirebaseAuthException catch (e) {
+      Get.snackbar(
+        "Erreur",
+        e.message ?? "Erreur de connexion",
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red.shade100,
+        colorText: Colors.red.shade900,
+      );
+    } finally {
+      isSubmitting.value = false;
+    }
   }
 
   /// --- CLEAR FORM ---
@@ -93,12 +119,8 @@ class LoginController extends GetxController {
 
   @override
   void onClose() {
-    // Retirer les listeners
     emailController.removeListener(_validateEmail);
     passwordController.removeListener(_validatePassword);
-    
-    emailController.dispose();
-    passwordController.dispose();
     super.onClose();
   }
 }

@@ -1,43 +1,40 @@
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 
 import '../../../routes/app_pages.dart';
 
 class SplashController extends GetxController {
-
   final box = GetStorage();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final fb.FirebaseAuth _auth = fb.FirebaseAuth.instance;
 
   @override
-  void onInit() {
-    super.onInit();
-    _next();
+  void onReady() {
+    super.onReady();
+
+    // Small splash delay (UX only)
+    Future.delayed(const Duration(seconds: 2), () {
+      _handleNavigation();
+    });
   }
 
-  Future<void> _next() async {
+  void _handleNavigation() {
+    final bool firstLaunch = box.read('firstLaunch') ?? true;
 
-    await Future.delayed(const Duration(seconds: 2));
+    // 1️⃣ First launch → Signup / Onboarding
+    if (firstLaunch) {
+      box.write('firstLaunch', false);
+      Get.offAllNamed(Routes.SIGNUP);
+      return;
+    }
 
-    bool firstLaunch = box.read('firstLaunch') ?? true;
-    User? user = _auth.currentUser;
-
-    // 1️⃣ First time opening the app
-    // if (firstLaunch) {
-    //   box.write('firstLaunch', false);
-    //   Get.offAllNamed(Routes.SIGNUP);
-    //   return;
-    // }
-
-    // // 2️⃣ User already logged in
-    // if (user != null) {
-    //   Get.offAllNamed(Routes.HOME);
-    //   return;
-    // }
-
-    // // 3️⃣ User not logged in
-    // Get.offAllNamed(Routes.LOGIN);
-
-    Get.offAllNamed(Routes.SIGNUP);
+    // 2️⃣ Listen to Firebase auth state (BEST PRACTICE)
+    _auth.authStateChanges().listen((fb.User? user) {
+      if (user != null) {
+        Get.offAllNamed(Routes.HOME);
+      } else {
+        Get.offAllNamed(Routes.LOGIN);
+      }
+    });
   }
 }

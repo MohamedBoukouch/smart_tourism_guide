@@ -1,5 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart' hide User;
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:smart_tourism_guide/app/config/services/auth_service.dart';
 
 import '../../../routes/app_pages.dart';
 import '../../../domain/models/user.dart';
@@ -9,6 +11,8 @@ class SignupController extends GetxController {
 
   /// --- FORM STATE ---
   final role = UserRole.visiteur.obs;
+
+  final AuthService _authService = AuthService();
 
   final emailController = TextEditingController();
   final usernameController = TextEditingController();
@@ -71,24 +75,30 @@ class SignupController extends GetxController {
   }
 
   /// --- SUBMIT ---
-  Future<void> submitSignup() async {
-    if (!isFormValid) return;
+Future<void> submitSignup() async {
+  if (!isFormValid) return;
 
-    isSubmitting.value = true;
+  isSubmitting.value = true;
 
+  try {
     final user = buildUser();
 
-    // TODO: send user to API / Firebase / Repository
-    // await authRepository.signup(user);
-    
-    // Simulate API call (remove this in production)
-    await Future.delayed(const Duration(seconds: 2));
+    await _authService.signup(user);
 
+    // Optional: save username / role later in Firestore
+    // (on le fera après)
+
+    Get.offAllNamed(Routes.HOME);
+  } on FirebaseAuthException catch (e) {
+    Get.snackbar(
+      "Erreur",
+      e.message ?? "Erreur lors de l'inscription",
+      snackPosition: SnackPosition.BOTTOM,
+    );
+  } finally {
     isSubmitting.value = false;
-    
-    // TODO: Navigate to next screen on success
-    // Get.offAllNamed(Routes.HOME);
   }
+}
 
   /// --- CLEAR FORM (optional) ---
   void clearForm() {

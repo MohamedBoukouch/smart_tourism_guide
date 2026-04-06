@@ -73,26 +73,28 @@ class SignupFormView extends GetView<SignupController> {
                   ),
                 ),
               ),
-              
-              SizedBox(
-                width: double.infinity,
-                height: 54,
-                child: ElevatedButton(
-                  onPressed: controller.submitSignup,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFB300),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  child: const Text(
-                    "S'inscrire",
-                    style: TextStyle(color: Colors.white),
-                  ),
-                ),
-              ),
-              
-              const SizedBox(height: 20),
+                              
+                SizedBox(
+        width: double.infinity,
+        height: 54,
+        child: ElevatedButton(
+          onPressed: () {
+            print("BUTTON CLICKED");
+            controller.submitSignup();
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFFFFB300),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
+            ),
+          ),
+          child: const Text(
+            "S'inscrire",
+            style: TextStyle(color: Colors.white),
+          ),
+        ),
+      ),
+                const SizedBox(height: 20),
             ],
           ),
         ),

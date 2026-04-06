@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../controllers/login_controller.dart';
+import 'package:smart_tourism_guide/app/modules/login/controllers/login_controller.dart';
+
 
 enum LoginInputType {
   email,
@@ -40,7 +41,7 @@ class LoginInput extends StatelessWidget {
         break;
     }
 
-    // For password field, make it reactive
+    // Pour le mot de passe, on utilise Obx pour l'icône d'eye
     if (inputType == LoginInputType.password) {
       return Obx(() => _buildInputField(
         loginController,
@@ -91,6 +92,14 @@ class LoginInput extends StatelessWidget {
               color: Colors.black87,
               fontSize: 15,
             ),
+            // ✅ CRUCIAL : déclencher la validation à chaque changement
+            onChanged: (_) {
+              if (inputType == LoginInputType.email) {
+                controller.validateEmail();
+              } else {
+                controller.validatePassword();
+              }
+            },
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: TextStyle(
