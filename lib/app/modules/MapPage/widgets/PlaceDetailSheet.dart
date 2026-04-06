@@ -4,6 +4,7 @@ import 'package:smart_tourism_guide/app/modules/MapPage/models/TouristPlace.dart
 class PlaceDetailSheet extends StatefulWidget {
   final TouristPlace place;
   final VoidCallback onClose;
+  
 
   const PlaceDetailSheet({Key? key, required this.place, required this.onClose})
     : super(key: key);
