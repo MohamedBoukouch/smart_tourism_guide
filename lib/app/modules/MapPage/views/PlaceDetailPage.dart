@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:video_player/video_player.dart';
 import 'package:smart_tourism_guide/app/modules/MapPage/models/TouristPlace.dart';
+import 'package:smart_tourism_guide/app/modules/FavoritePage/controllers/favorite_page_controller.dart';
 
 class PlaceDetailPage extends StatefulWidget {
   final TouristPlace place;
@@ -20,7 +21,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
 
   int _currentImage = 0;
   int _currentVideo = 0;
-  bool _isFavorite = false;
   bool _showVideo = false;
   bool _descExpanded = false;
   double _scrollOffset = 0;
@@ -30,8 +30,10 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
   late Animation<double> _fadeAnim;
   late Animation<Offset> _slideAnim;
 
-  TouristPlace get place => widget.place;
+  // ✅ FavoritePageController — find existing or create new
+  late final FavoritePageController _favCtrl;
 
+  TouristPlace get place => widget.place;
   PlaceCategory get _cat => TouristPlace.parseCategory(place.category);
 
   Color get _accent {
@@ -110,6 +112,12 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
   @override
   void initState() {
     super.initState();
+
+    // ✅ Get existing controller OR create one if not yet registered
+    _favCtrl = Get.isRegistered<FavoritePageController>()
+        ? Get.find<FavoritePageController>()
+        : Get.put(FavoritePageController());
+
     _fadeCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 700),
@@ -123,9 +131,11 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
       begin: const Offset(0, 0.15),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _slideCtrl, curve: Curves.easeOutCubic));
+
     _scrollCtrl.addListener(
       () => setState(() => _scrollOffset = _scrollCtrl.offset),
     );
+
     Future.delayed(const Duration(milliseconds: 100), () {
       _fadeCtrl.forward();
       _slideCtrl.forward();
@@ -196,7 +206,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                   : _buildImageCarousel(allImages),
             ),
           ),
-
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
@@ -214,7 +223,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
               ),
             ),
           ),
-
           Positioned(
             top: 0,
             left: 0,
@@ -230,7 +238,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
               ),
             ),
           ),
-
           Positioned(
             bottom: 56,
             left: 20,
@@ -250,7 +257,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
               ],
             ),
           ),
-
           if (place.videoUrls.isNotEmpty)
             Positioned(
               bottom: 48,
@@ -279,7 +285,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                 ),
               ),
             ),
-
           if (!_showVideo && allImages.length > 1)
             Positioned(
               bottom: 20,
@@ -302,7 +307,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                 ),
               ),
             ),
-
           if (_showVideo && place.videoUrls.length > 1)
             Positioned(
               bottom: 20,
@@ -348,7 +352,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
             ? Image.network(
                 src,
                 fit: BoxFit.cover,
-                loadingBuilder: (_, child, progress) => progress == null
+                loadingBuilder: (_, child, p) => p == null
                     ? child
                     : Container(
                         color: const Color(0xFF1A1A1A),
@@ -384,7 +388,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
     );
   }
 
-  // ── Video area — real video_player ────────────────────────────────────────
   Widget _buildVideoArea() {
     return PageView.builder(
       itemCount: place.videoUrls.length,
@@ -430,30 +433,35 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                   ),
                 ),
                 const SizedBox(width: 12),
-                GestureDetector(
-                  onTap: () => setState(() => _isFavorite = !_isFavorite),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      color: _isFavorite
-                          ? _accent.withOpacity(0.15)
-                          : Colors.white.withOpacity(0.06),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: _isFavorite
-                            ? _accent.withOpacity(0.5)
-                            : Colors.white12,
+
+                // ✅ BOOKMARK BUTTON — connected to Firestore via FavoritePageController
+                Obx(() {
+                  final isFav = _favCtrl.isFavorite(place.id);
+                  return GestureDetector(
+                    onTap: () => _favCtrl.toggleFavorite(place),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 300),
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: isFav
+                            ? _accent.withOpacity(0.15)
+                            : Colors.white.withOpacity(0.06),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isFav
+                              ? _accent.withOpacity(0.5)
+                              : Colors.white12,
+                        ),
+                      ),
+                      child: Icon(
+                        isFav ? Icons.bookmark : Icons.bookmark_border,
+                        color: isFav ? _accent : Colors.white54,
+                        size: 20,
                       ),
                     ),
-                    child: Icon(
-                      _isFavorite ? Icons.bookmark : Icons.bookmark_border,
-                      color: _isFavorite ? _accent : Colors.white54,
-                      size: 20,
-                    ),
-                  ),
-                ),
+                  );
+                }),
               ],
             ),
           ),
@@ -758,7 +766,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
       ),
       child: Row(
         children: [
-          if (place.videoUrls.isNotEmpty)
+          if (place.videoUrls.isNotEmpty) ...[
             Expanded(
               child: _ActionButton(
                 label: '${place.videoUrls.length} Videos',
@@ -769,7 +777,8 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                 onTap: () => setState(() => _showVideo = true),
               ),
             ),
-          if (place.videoUrls.isNotEmpty) const SizedBox(width: 10),
+            const SizedBox(width: 10),
+          ],
           Expanded(
             flex: 2,
             child: _ActionButton(
@@ -797,15 +806,13 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
   );
 }
 
-// ─── Real Video Player Card ───────────────────────────────────────────────────
-// Add to pubspec.yaml:  video_player: ^2.9.1
+// ─── Real Video Player ────────────────────────────────────────────────────────
 
 class _VideoPlayerCard extends StatefulWidget {
   final String url;
   final Color accent;
   final int index, total;
   final bool autoPlay;
-
   const _VideoPlayerCard({
     required this.url,
     required this.accent,
@@ -813,7 +820,6 @@ class _VideoPlayerCard extends StatefulWidget {
     required this.total,
     this.autoPlay = false,
   });
-
   @override
   State<_VideoPlayerCard> createState() => _VideoPlayerCardState();
 }
@@ -822,7 +828,6 @@ class _VideoPlayerCardState extends State<_VideoPlayerCard> {
   VideoPlayerController? _ctrl;
   bool _initialized = false;
   bool _error = false;
-  bool _showControls = true;
 
   @override
   void initState() {
@@ -832,13 +837,12 @@ class _VideoPlayerCardState extends State<_VideoPlayerCard> {
 
   Future<void> _initPlayer() async {
     try {
-      final uri = Uri.parse(widget.url);
-      _ctrl = VideoPlayerController.networkUrl(uri);
+      _ctrl = VideoPlayerController.networkUrl(Uri.parse(widget.url));
       await _ctrl!.initialize();
       if (!mounted) return;
       setState(() => _initialized = true);
       if (widget.autoPlay) _ctrl!.play();
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() => _error = true);
     }
@@ -852,9 +856,7 @@ class _VideoPlayerCardState extends State<_VideoPlayerCard> {
 
   void _togglePlay() {
     if (_ctrl == null || !_initialized) return;
-    setState(() {
-      _ctrl!.value.isPlaying ? _ctrl!.pause() : _ctrl!.play();
-    });
+    setState(() => _ctrl!.value.isPlaying ? _ctrl!.pause() : _ctrl!.play());
   }
 
   @override
@@ -877,7 +879,6 @@ class _VideoPlayerCardState extends State<_VideoPlayerCard> {
         ),
       );
     }
-
     if (!_initialized) {
       return Container(
         color: Colors.black,
@@ -889,32 +890,26 @@ class _VideoPlayerCardState extends State<_VideoPlayerCard> {
         ),
       );
     }
-
     return GestureDetector(
-      onTap: () {
-        _togglePlay();
-        setState(() => _showControls = true);
-      },
+      onTap: _togglePlay,
       child: Container(
         color: Colors.black,
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Video
             Center(
               child: AspectRatio(
                 aspectRatio: _ctrl!.value.aspectRatio,
                 child: VideoPlayer(_ctrl!),
               ),
             ),
-
-            // Play/pause overlay
-            if (_showControls)
-              Center(
-                child: GestureDetector(
-                  onTap: _togglePlay,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
+            Center(
+              child: ValueListenableBuilder<VideoPlayerValue>(
+                valueListenable: _ctrl!,
+                builder: (_, v, __) => AnimatedOpacity(
+                  opacity: v.isPlaying ? 0.0 : 1.0,
+                  duration: const Duration(milliseconds: 200),
+                  child: Container(
                     width: 68,
                     height: 68,
                     decoration: BoxDecoration(
@@ -922,21 +917,15 @@ class _VideoPlayerCardState extends State<_VideoPlayerCard> {
                       color: Colors.black54,
                       border: Border.all(color: widget.accent, width: 2),
                     ),
-                    child: ValueListenableBuilder<VideoPlayerValue>(
-                      valueListenable: _ctrl!,
-                      builder: (_, v, __) => Icon(
-                        v.isPlaying
-                            ? Icons.pause_rounded
-                            : Icons.play_arrow_rounded,
-                        color: widget.accent,
-                        size: 36,
-                      ),
+                    child: Icon(
+                      Icons.play_arrow_rounded,
+                      color: widget.accent,
+                      size: 36,
                     ),
                   ),
                 ),
               ),
-
-            // Progress bar
+            ),
             Positioned(
               bottom: 0,
               left: 0,
@@ -950,7 +939,6 @@ class _VideoPlayerCardState extends State<_VideoPlayerCard> {
                   return Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Scrubber
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: SliderTheme(
@@ -968,16 +956,12 @@ class _VideoPlayerCardState extends State<_VideoPlayerCard> {
                           ),
                           child: Slider(
                             value: progress.clamp(0.0, 1.0),
-                            onChanged: (val) {
-                              final newPos = Duration(
-                                milliseconds: (total * val).toInt(),
-                              );
-                              _ctrl!.seekTo(newPos);
-                            },
+                            onChanged: (val) => _ctrl!.seekTo(
+                              Duration(milliseconds: (total * val).toInt()),
+                            ),
                           ),
                         ),
                       ),
-                      // Time + index label
                       Padding(
                         padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                         child: Row(
@@ -1115,7 +1099,6 @@ class _ARButton extends StatefulWidget {
     required this.accentDark,
     required this.placeName,
   });
-
   @override
   State<_ARButton> createState() => _ARButtonState();
 }
@@ -1123,7 +1106,6 @@ class _ARButton extends StatefulWidget {
 class _ARButtonState extends State<_ARButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _pulse;
-
   @override
   void initState() {
     super.initState();
@@ -1142,18 +1124,16 @@ class _ARButtonState extends State<_ARButton>
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {
-        Get.snackbar(
-          '🥽 AR Experience',
-          'Launching AR for ${widget.placeName}...',
-          snackPosition: SnackPosition.TOP,
-          backgroundColor: widget.accent,
-          colorText: Colors.white,
-          margin: const EdgeInsets.all(16),
-          borderRadius: 12,
-          duration: const Duration(seconds: 3),
-        );
-      },
+      onTap: () => Get.snackbar(
+        '🥽 AR Experience',
+        'Launching AR for ${widget.placeName}...',
+        snackPosition: SnackPosition.TOP,
+        backgroundColor: widget.accent,
+        colorText: Colors.white,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 12,
+        duration: const Duration(seconds: 3),
+      ),
       child: AnimatedBuilder(
         animation: _pulse,
         builder: (_, __) => Container(
@@ -1279,8 +1259,7 @@ class _Gallery extends StatelessWidget {
                           width: 140,
                           height: 110,
                           fit: BoxFit.cover,
-                          loadingBuilder: (_, child, progress) =>
-                              progress == null
+                          loadingBuilder: (_, child, p) => p == null
                               ? child
                               : Container(
                                   width: 140,

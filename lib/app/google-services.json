@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "146599908794",
+    "project_id": "smart-tourism-guide-9abbe",
+    "storage_bucket": "smart-tourism-guide-9abbe.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:146599908794:android:97ed39a61f49ea6f9cf983",
+        "android_client_info": {
+          "package_name": "com.example.smart_tourism_guide"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhNu2PvnlAa4A9aNC5_-CQ_h23vdwG5sc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
