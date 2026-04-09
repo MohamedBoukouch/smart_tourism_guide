@@ -17,6 +17,10 @@ class PlaceCardMarker extends StatelessWidget {
     this.onTap,
   });
 
+  /// Returns true if [imagePath] is a network URL.
+  bool get _isNetwork =>
+      imagePath.startsWith('http://') || imagePath.startsWith('https://');
+
   @override
   Widget build(BuildContext context) {
     final width = AppConstant.screenWidth * .75;
@@ -42,20 +46,42 @@ class PlaceCardMarker extends StatelessWidget {
             ),
             child: Row(
               children: [
+                // ── Thumbnail ──────────────────────────────────────────
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
-                  child: Image.asset(
-                    imagePath,
-                    width: 80,
-                    height: 80,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
-                      width: 80,
-                      height: 80,
-                      color: Colors.grey[200],
-                      child: const Icon(Icons.image, color: Colors.grey),
-                    ),
-                  ),
+                  child: _isNetwork
+                      ? Image.network(
+                          imagePath,
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
+                          loadingBuilder: (_, child, progress) =>
+                              progress == null
+                              ? child
+                              : Container(
+                                  width: 80,
+                                  height: 80,
+                                  color: Colors.grey[200],
+                                  child: const Center(
+                                    child: SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.orange,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                          errorBuilder: (_, __, ___) => _placeholder(),
+                        )
+                      : Image.asset(
+                          imagePath,
+                          width: 80,
+                          height: 80,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => _placeholder(),
+                        ),
                 ),
 
                 const SizedBox(width: 12),
@@ -73,9 +99,7 @@ class PlaceCardMarker extends StatelessWidget {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-
                       const SizedBox(height: 8),
-
                       Row(
                         children: [
                           const Icon(Icons.route, size: 16, color: Colors.grey),
@@ -87,32 +111,30 @@ class PlaceCardMarker extends StatelessWidget {
                               color: Colors.grey[600],
                             ),
                           ),
-
-                          const SizedBox(width: 14),
-
-                          Container(
-                            width: 26,
-                            height: 26,
-                            decoration: const BoxDecoration(
-                              color: Colors.grey,
-                              shape: BoxShape.circle,
+                          if (podcasts > 0) ...[
+                            const SizedBox(width: 14),
+                            Container(
+                              width: 26,
+                              height: 26,
+                              decoration: const BoxDecoration(
+                                color: Colors.grey,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.play_arrow,
+                                color: Colors.white,
+                                size: 16,
+                              ),
                             ),
-                            child: const Icon(
-                              Icons.play_arrow,
-                              color: Colors.white,
-                              size: 16,
+                            const SizedBox(width: 6),
+                            Text(
+                              '$podcasts Podcasts',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[600],
+                              ),
                             ),
-                          ),
-
-                          const SizedBox(width: 6),
-
-                          Text(
-                            "$podcasts Podcasts",
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey[600],
-                            ),
-                          ),
+                          ],
                         ],
                       ),
                     ],
@@ -127,6 +149,13 @@ class PlaceCardMarker extends StatelessWidget {
       ),
     );
   }
+
+  Widget _placeholder() => Container(
+    width: 80,
+    height: 80,
+    color: Colors.grey[200],
+    child: const Icon(Icons.image, color: Colors.grey),
+  );
 }
 
 class _TailPainter extends CustomPainter {
@@ -137,7 +166,6 @@ class _TailPainter extends CustomPainter {
       ..lineTo(size.width, 0)
       ..lineTo(size.width / 2, size.height)
       ..close();
-
     canvas.drawPath(path, Paint()..color = Colors.white);
   }
 

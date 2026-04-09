@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
+import 'package:video_player/video_player.dart';
 import 'package:smart_tourism_guide/app/modules/MapPage/models/TouristPlace.dart';
 
 class PlaceDetailPage extends StatefulWidget {
@@ -31,7 +32,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
 
   TouristPlace get place => widget.place;
 
-  // ── Category resolved from String ────────────────────────────────────────
   PlaceCategory get _cat => TouristPlace.parseCategory(place.category);
 
   Color get _accent {
@@ -102,7 +102,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
     }
   }
 
-  // localisation list → human-readable address
   String get _address {
     if (place.localisation.isEmpty) return '';
     return place.localisation.join(', ');
@@ -178,7 +177,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
 
   Widget _buildHero(double heroH) {
     final parallax = _scrollOffset * 0.4;
-    // All images: use imageAsset as fallback + images list
     final allImages = [
       if (place.imageAsset.isNotEmpty) place.imageAsset,
       ...place.images,
@@ -189,7 +187,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Image / Video area
           Transform.translate(
             offset: Offset(0, -parallax),
             child: SizedBox(
@@ -200,7 +197,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
             ),
           ),
 
-          // Bottom gradient
           Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
@@ -219,7 +215,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
             ),
           ),
 
-          // Top gradient for readability
           Positioned(
             top: 0,
             left: 0,
@@ -236,7 +231,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
             ),
           ),
 
-          // Category + rating pills
           Positioned(
             bottom: 56,
             left: 20,
@@ -257,7 +251,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
             ),
           ),
 
-          // Video toggle — only if videoUrls not empty
           if (place.videoUrls.isNotEmpty)
             Positioned(
               bottom: 48,
@@ -287,7 +280,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
               ),
             ),
 
-          // Dot indicators (images mode)
           if (!_showVideo && allImages.length > 1)
             Positioned(
               bottom: 20,
@@ -311,7 +303,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
               ),
             ),
 
-          // Video index dots
           if (_showVideo && place.videoUrls.length > 1)
             Positioned(
               bottom: 20,
@@ -350,42 +341,60 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
       controller: _pageCtrl,
       itemCount: allImages.length,
       onPageChanged: (i) => setState(() => _currentImage = i),
-      itemBuilder: (_, i) => Image.network(
-        allImages[i],
-        fit: BoxFit.cover,
-        loadingBuilder: (_, child, progress) => progress == null
-            ? child
-            : Container(
-                color: const Color(0xFF1A1A1A),
-                child: Center(
-                  child: CircularProgressIndicator(
-                    color: _accent,
-                    strokeWidth: 2,
+      itemBuilder: (_, i) {
+        final src = allImages[i];
+        final isNet = src.startsWith('http://') || src.startsWith('https://');
+        return isNet
+            ? Image.network(
+                src,
+                fit: BoxFit.cover,
+                loadingBuilder: (_, child, progress) => progress == null
+                    ? child
+                    : Container(
+                        color: const Color(0xFF1A1A1A),
+                        child: Center(
+                          child: CircularProgressIndicator(
+                            color: _accent,
+                            strokeWidth: 2,
+                          ),
+                        ),
+                      ),
+                errorBuilder: (_, __, ___) => Container(
+                  color: const Color(0xFF1A1A1A),
+                  child: Icon(
+                    _categoryIcon,
+                    size: 80,
+                    color: _accent.withOpacity(0.25),
                   ),
                 ),
-              ),
-        errorBuilder: (_, __, ___) => Container(
-          color: const Color(0xFF1A1A1A),
-          child: Icon(
-            _categoryIcon,
-            size: 80,
-            color: _accent.withOpacity(0.25),
-          ),
-        ),
-      ),
+              )
+            : Image.asset(
+                src,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => Container(
+                  color: const Color(0xFF1A1A1A),
+                  child: Icon(
+                    _categoryIcon,
+                    size: 80,
+                    color: _accent.withOpacity(0.25),
+                  ),
+                ),
+              );
+      },
     );
   }
 
-  // ── Video area — swipeable if multiple videos ─────────────────────────────
+  // ── Video area — real video_player ────────────────────────────────────────
   Widget _buildVideoArea() {
     return PageView.builder(
       itemCount: place.videoUrls.length,
       onPageChanged: (i) => setState(() => _currentVideo = i),
-      itemBuilder: (_, i) => _VideoCard(
+      itemBuilder: (_, i) => _VideoPlayerCard(
         url: place.videoUrls[i],
         accent: _accent,
         index: i,
         total: place.videoUrls.length,
+        autoPlay: i == _currentVideo,
       ),
     );
   }
@@ -403,7 +412,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Name + bookmark ──────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
             child: Row(
@@ -452,7 +460,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
 
           const SizedBox(height: 8),
 
-          // ── Localisation (address from list) ─────────────────────────
           if (_address.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -477,7 +484,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
 
           const SizedBox(height: 20),
 
-          // ── Stats ────────────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Row(
@@ -510,7 +516,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
 
           const SizedBox(height: 24),
 
-          // ── AR button ────────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: _ARButton(
@@ -522,7 +527,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
 
           const SizedBox(height: 24),
 
-          // ── Description ──────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
@@ -572,7 +576,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
 
           const SizedBox(height: 28),
 
-          // ── Quick Info ───────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
@@ -587,7 +590,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
 
           const SizedBox(height: 28),
 
-          // ── Gallery ──────────────────────────────────────────────────
           if (allImages.length > 1) ...[
             Padding(
               padding: const EdgeInsets.only(left: 20, right: 20, bottom: 12),
@@ -613,7 +615,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
             const SizedBox(height: 28),
           ],
 
-          // ── Videos list (thumbnails) ─────────────────────────────────
           if (place.videoUrls.isNotEmpty) ...[
             Padding(
               padding: const EdgeInsets.only(left: 20, right: 20, bottom: 12),
@@ -641,7 +642,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
             const SizedBox(height: 28),
           ],
 
-          // ── Content stats ────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Column(
@@ -679,7 +679,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
 
           const SizedBox(height: 28),
 
-          // ── Tags ─────────────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: _TagsRow(category: place.category, accent: _accent),
@@ -759,7 +758,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
       ),
       child: Row(
         children: [
-          // Videos count button
           if (place.videoUrls.isNotEmpty)
             Expanded(
               child: _ActionButton(
@@ -772,7 +770,6 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
               ),
             ),
           if (place.videoUrls.isNotEmpty) const SizedBox(width: 10),
-          // Main CTA
           Expanded(
             flex: 2,
             child: _ActionButton(
@@ -800,77 +797,232 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
   );
 }
 
-// ─── Video Card (shown in hero when video mode) ───────────────────────────────
+// ─── Real Video Player Card ───────────────────────────────────────────────────
+// Add to pubspec.yaml:  video_player: ^2.9.1
 
-class _VideoCard extends StatelessWidget {
+class _VideoPlayerCard extends StatefulWidget {
   final String url;
   final Color accent;
   final int index, total;
-  const _VideoCard({
+  final bool autoPlay;
+
+  const _VideoPlayerCard({
     required this.url,
     required this.accent,
     required this.index,
     required this.total,
+    this.autoPlay = false,
   });
 
   @override
+  State<_VideoPlayerCard> createState() => _VideoPlayerCardState();
+}
+
+class _VideoPlayerCardState extends State<_VideoPlayerCard> {
+  VideoPlayerController? _ctrl;
+  bool _initialized = false;
+  bool _error = false;
+  bool _showControls = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initPlayer();
+  }
+
+  Future<void> _initPlayer() async {
+    try {
+      final uri = Uri.parse(widget.url);
+      _ctrl = VideoPlayerController.networkUrl(uri);
+      await _ctrl!.initialize();
+      if (!mounted) return;
+      setState(() => _initialized = true);
+      if (widget.autoPlay) _ctrl!.play();
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _error = true);
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl?.dispose();
+    super.dispose();
+  }
+
+  void _togglePlay() {
+    if (_ctrl == null || !_initialized) return;
+    setState(() {
+      _ctrl!.value.isPlaying ? _ctrl!.pause() : _ctrl!.play();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.black,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: accent.withOpacity(0.12),
-              border: Border.all(color: accent, width: 2),
-            ),
-            child: Icon(Icons.play_arrow_rounded, color: accent, size: 42),
+    if (_error) {
+      return Container(
+        color: Colors.black,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline, color: widget.accent, size: 48),
+              const SizedBox(height: 12),
+              const Text(
+                'Failed to load video',
+                style: TextStyle(color: Colors.white54, fontSize: 13),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          Text(
-            'Video ${index + 1} of $total',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-            ),
+        ),
+      );
+    }
+
+    if (!_initialized) {
+      return Container(
+        color: Colors.black,
+        child: Center(
+          child: CircularProgressIndicator(
+            color: widget.accent,
+            strokeWidth: 2,
           ),
-          const SizedBox(height: 6),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40),
-            child: Text(
-              url,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.white30, fontSize: 10),
-            ),
-          ),
-          const SizedBox(height: 20),
-          // ── Wire video_player here ──────────────────────────────────
-          // VideoPlayerController.networkUrl(Uri.parse(url))
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            decoration: BoxDecoration(
-              color: accent,
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: const Text(
-              'Watch Now',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onTap: () {
+        _togglePlay();
+        setState(() => _showControls = true);
+      },
+      child: Container(
+        color: Colors.black,
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Video
+            Center(
+              child: AspectRatio(
+                aspectRatio: _ctrl!.value.aspectRatio,
+                child: VideoPlayer(_ctrl!),
               ),
             ),
-          ),
-        ],
+
+            // Play/pause overlay
+            if (_showControls)
+              Center(
+                child: GestureDetector(
+                  onTap: _togglePlay,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 68,
+                    height: 68,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.black54,
+                      border: Border.all(color: widget.accent, width: 2),
+                    ),
+                    child: ValueListenableBuilder<VideoPlayerValue>(
+                      valueListenable: _ctrl!,
+                      builder: (_, v, __) => Icon(
+                        v.isPlaying
+                            ? Icons.pause_rounded
+                            : Icons.play_arrow_rounded,
+                        color: widget.accent,
+                        size: 36,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+            // Progress bar
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: ValueListenableBuilder<VideoPlayerValue>(
+                valueListenable: _ctrl!,
+                builder: (_, v, __) {
+                  final total = v.duration.inMilliseconds;
+                  final pos = v.position.inMilliseconds;
+                  final progress = total > 0 ? pos / total : 0.0;
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Scrubber
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            trackHeight: 3,
+                            thumbShape: const RoundSliderThumbShape(
+                              enabledThumbRadius: 6,
+                            ),
+                            overlayShape: const RoundSliderOverlayShape(
+                              overlayRadius: 12,
+                            ),
+                            activeTrackColor: widget.accent,
+                            inactiveTrackColor: Colors.white24,
+                            thumbColor: widget.accent,
+                          ),
+                          child: Slider(
+                            value: progress.clamp(0.0, 1.0),
+                            onChanged: (val) {
+                              final newPos = Duration(
+                                milliseconds: (total * val).toInt(),
+                              );
+                              _ctrl!.seekTo(newPos);
+                            },
+                          ),
+                        ),
+                      ),
+                      // Time + index label
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                        child: Row(
+                          children: [
+                            Text(
+                              _fmt(v.position),
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 11,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              'Video ${widget.index + 1} / ${widget.total}',
+                              style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 11,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              _fmt(v.duration),
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  String _fmt(Duration d) {
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$m:$s';
   }
 }
 
@@ -924,7 +1076,7 @@ class _VideoList extends StatelessWidget {
                   left: 8,
                   child: Text(
                     'Video ${i + 1}',
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Colors.white60,
                       fontSize: 10,
                       fontWeight: FontWeight.w600,
@@ -991,7 +1143,6 @@ class _ARButtonState extends State<_ARButton>
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () {
-        // ── Wire your AR plugin here (arcore_flutter_plugin / ar_flutter_plugin)
         Get.snackbar(
           '🥽 AR Experience',
           'Launching AR for ${widget.placeName}...',
@@ -1113,61 +1264,83 @@ class _Gallery extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: images.length,
         separatorBuilder: (_, __) => const SizedBox(width: 10),
-        itemBuilder: (_, i) => GestureDetector(
-          onTap: () => onTap(i),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Stack(
-              children: [
-                Image.network(
-                  images[i],
-                  width: 140,
-                  height: 110,
-                  fit: BoxFit.cover,
-                  loadingBuilder: (_, child, progress) => progress == null
-                      ? child
-                      : Container(
+        itemBuilder: (_, i) {
+          final src = images[i];
+          final isNet = src.startsWith('http://') || src.startsWith('https://');
+          return GestureDetector(
+            onTap: () => onTap(i),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Stack(
+                children: [
+                  isNet
+                      ? Image.network(
+                          src,
                           width: 140,
                           height: 110,
-                          color: const Color(0xFF1A1A1A),
+                          fit: BoxFit.cover,
+                          loadingBuilder: (_, child, progress) =>
+                              progress == null
+                              ? child
+                              : Container(
+                                  width: 140,
+                                  height: 110,
+                                  color: const Color(0xFF1A1A1A),
+                                ),
+                          errorBuilder: (_, __, ___) => Container(
+                            width: 140,
+                            height: 110,
+                            color: const Color(0xFF1A1A1A),
+                            child: Icon(
+                              Icons.image_outlined,
+                              color: accent.withOpacity(0.3),
+                              size: 30,
+                            ),
+                          ),
+                        )
+                      : Image.asset(
+                          src,
+                          width: 140,
+                          height: 110,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            width: 140,
+                            height: 110,
+                            color: const Color(0xFF1A1A1A),
+                            child: Icon(
+                              Icons.image_outlined,
+                              color: accent.withOpacity(0.3),
+                              size: 30,
+                            ),
+                          ),
                         ),
-                  errorBuilder: (_, __, ___) => Container(
-                    width: 140,
-                    height: 110,
-                    color: const Color(0xFF1A1A1A),
-                    child: Icon(
-                      Icons.image_outlined,
-                      color: accent.withOpacity(0.3),
-                      size: 30,
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: 6,
-                  right: 6,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 6,
-                      vertical: 3,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black54,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      '${i + 1}/${images.length}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 9,
-                        fontWeight: FontWeight.w600,
+                  Positioned(
+                    bottom: 6,
+                    right: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '${i + 1}/${images.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
   }

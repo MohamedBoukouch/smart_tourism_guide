@@ -3,7 +3,6 @@ import 'package:flutter/scheduler.dart';
 import 'package:get/get.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'dart:ui' as ui;
-import 'package:smart_tourism_guide/app/modules/MapPage/models/TouristPlace.dart';
 import 'package:smart_tourism_guide/app/modules/MapPage/views/PlaceDetailPage.dart';
 import 'package:smart_tourism_guide/app/modules/MapPage/widgets/PlaceCardMarker.dart';
 import 'package:smart_tourism_guide/app/widgets/CustomAppBar.dart';
