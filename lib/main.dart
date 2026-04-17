@@ -10,9 +10,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Firebase init
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   // Local storage init
   await GetStorage.init();
@@ -20,7 +18,7 @@ void main() async {
   runApp(
     GetMaterialApp(
       title: "Smart Tourism Guide",
-      initialRoute: AppPages.INITIAL,
+      initialRoute: '/home',
       getPages: AppPages.routes,
       debugShowCheckedModeBanner: false,
     ),

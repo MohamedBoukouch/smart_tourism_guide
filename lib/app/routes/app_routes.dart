@@ -12,6 +12,9 @@ abstract class Routes {
   static const FAVORITE_PAGE = _Paths.FAVORITE_PAGE;
   static const SETTINGS_PAGE = _Paths.SETTINGS_PAGE;
   static const MAP_PAGE = _Paths.MAP_PAGE;
+  static const EDIT_PROFILE = _Paths.EDIT_PROFILE;
+  static const DOWNLOADS = _Paths.DOWNLOADS;
+  static const CGU = _Paths.CGU;
 }
 
 abstract class _Paths {
@@ -25,4 +28,7 @@ abstract class _Paths {
   static const FAVORITE_PAGE = '/favorite-page';
   static const SETTINGS_PAGE = '/settings-page';
   static const MAP_PAGE = '/map-page';
+  static const EDIT_PROFILE = '/edit-profile';
+  static const DOWNLOADS = '/downloads';
+  static const CGU = '/cgu';
 }
