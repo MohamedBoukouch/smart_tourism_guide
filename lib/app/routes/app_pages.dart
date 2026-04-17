@@ -8,6 +8,8 @@ import '../modules/SettingsPage/bindings/settings_page_binding.dart';
 import '../modules/SettingsPage/views/settings_page_view.dart';
 import '../modules/cgu/bindings/cgu_binding.dart';
 import '../modules/cgu/views/cgu_view.dart';
+import '../modules/chatbot/bindings/chatbot_binding.dart';
+import '../modules/chatbot/views/chatbot_view.dart';
 import '../modules/downloads/bindings/downloads_binding.dart';
 import '../modules/downloads/views/downloads_view.dart';
 import '../modules/edit_profile/bindings/edit_profile_binding.dart';
@@ -93,6 +95,11 @@ class AppPages {
       name: _Paths.CGU,
       page: () => const CguView(),
       binding: CguBinding(),
+    ),
+    GetPage(
+      name: _Paths.CHATBOT,
+      page: () => const ChatbotView(),
+      binding: ChatbotBinding(),
     ),
   ];
 }

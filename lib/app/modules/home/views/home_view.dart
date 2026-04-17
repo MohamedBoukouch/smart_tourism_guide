@@ -11,41 +11,37 @@ class HomeView extends GetView<HomeController> {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() => Scaffold(
-          body: IndexedStack(
-            index: controller.currentIndex.value,
-            children: const [
-              HomePage(),
-              MapPageView(),
-              FavoritePageView(),
-              SettingsPageView(),
-            ],
-          ),
-          bottomNavigationBar: BottomNavigationBar(
-            currentIndex: controller.currentIndex.value,
-            onTap: controller.changeIndex,
-            selectedItemColor: Colors.orange,
-            unselectedItemColor: Colors.grey,
-            type: BottomNavigationBarType.fixed,
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home),
-                label: "Home",
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.map),
-                label: "Map",
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.favorite),
-                label: "Favorite",
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.settings),
-                label: "Settings",
-              ),
-            ],
-          ),
-        ));
+    return Obx(
+      () => Scaffold(
+        body: IndexedStack(
+          index: controller.currentIndex.value,
+          children: const [
+            HomePage(),
+            MapPageView(),
+            FavoritePageView(),
+            SettingsPageView(),
+          ],
+        ),
+        bottomNavigationBar: BottomNavigationBar(
+          currentIndex: controller.currentIndex.value,
+          onTap: controller.changeIndex,
+          selectedItemColor: Colors.orange,
+          unselectedItemColor: Colors.grey,
+          type: BottomNavigationBarType.fixed,
+          items: const [
+            BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
+            BottomNavigationBarItem(icon: Icon(Icons.map), label: "Map"),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.favorite),
+              label: "Favorite",
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.settings),
+              label: "Settings",
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

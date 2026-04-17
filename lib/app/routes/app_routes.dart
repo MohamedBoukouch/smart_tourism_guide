@@ -15,6 +15,7 @@ abstract class Routes {
   static const EDIT_PROFILE = _Paths.EDIT_PROFILE;
   static const DOWNLOADS = _Paths.DOWNLOADS;
   static const CGU = _Paths.CGU;
+  static const CHATBOT = _Paths.CHATBOT;
 }
 
 abstract class _Paths {
@@ -31,4 +32,5 @@ abstract class _Paths {
   static const EDIT_PROFILE = '/edit-profile';
   static const DOWNLOADS = '/downloads';
   static const CGU = '/cgu';
+  static const CHATBOT = '/chatbot';
 }
