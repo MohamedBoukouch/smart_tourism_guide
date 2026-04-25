@@ -2,7 +2,6 @@ import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:get/get.dart";
 
-import "../constants/app_constant.dart";
 import "../themes/app_theme.dart";
 
 // final SettingController compte_controller = Get.put(SettingController());

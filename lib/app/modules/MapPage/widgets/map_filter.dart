@@ -6,7 +6,7 @@ import 'package:smart_tourism_guide/app/modules/MapPage/models/PlacesApiService.
 // ── Filter button ─────────────────────────────────────────────────────────────
 
 class MapFilter extends StatelessWidget {
-  const MapFilter({Key? key}) : super(key: key);
+  const MapFilter({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -410,7 +410,7 @@ class _ResultsSheetState extends State<_ResultsSheet> {
     controller: sc,
     padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
     itemCount: _results.length,
-    separatorBuilder: (_, __) => const SizedBox(height: 10),
+    separatorBuilder: (_, _) => const SizedBox(height: 10),
     itemBuilder: (_, i) => _Tile(
       place: _results[i],
       accentColor: cat.color,
@@ -460,7 +460,7 @@ class _Tile extends StatelessWidget {
                       width: 70,
                       height: 70,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _placeholder(),
+                      errorBuilder: (_, _, _) => _placeholder(),
                     )
                   : _placeholder(),
             ),

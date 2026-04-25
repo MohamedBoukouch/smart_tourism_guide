@@ -12,7 +12,7 @@ import '../widgets/map_filter.dart';
 import '../widgets/map_location.dart';
 
 class MapPageView extends StatefulWidget {
-  const MapPageView({Key? key}) : super(key: key);
+  const MapPageView({super.key});
 
   @override
   State<MapPageView> createState() => _MapPageViewState();

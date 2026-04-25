@@ -8,7 +8,7 @@ import 'package:smart_tourism_guide/app/modules/FavoritePage/controllers/favorit
 
 class PlaceDetailPage extends StatefulWidget {
   final TouristPlace place;
-  const PlaceDetailPage({Key? key, required this.place}) : super(key: key);
+  const PlaceDetailPage({super.key, required this.place});
 
   @override
   State<PlaceDetailPage> createState() => _PlaceDetailPageState();
@@ -363,7 +363,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
                           ),
                         ),
                       ),
-                errorBuilder: (_, __, ___) => Container(
+                errorBuilder: (_, _, _) => Container(
                   color: const Color(0xFF1A1A1A),
                   child: Icon(
                     _categoryIcon,
@@ -375,7 +375,7 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
             : Image.asset(
                 src,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
+                errorBuilder: (_, _, _) => Container(
                   color: const Color(0xFF1A1A1A),
                   child: Icon(
                     _categoryIcon,
@@ -906,7 +906,7 @@ class _VideoPlayerCardState extends State<_VideoPlayerCard> {
             Center(
               child: ValueListenableBuilder<VideoPlayerValue>(
                 valueListenable: _ctrl!,
-                builder: (_, v, __) => AnimatedOpacity(
+                builder: (_, v, _) => AnimatedOpacity(
                   opacity: v.isPlaying ? 0.0 : 1.0,
                   duration: const Duration(milliseconds: 200),
                   child: Container(
@@ -932,7 +932,7 @@ class _VideoPlayerCardState extends State<_VideoPlayerCard> {
               right: 0,
               child: ValueListenableBuilder<VideoPlayerValue>(
                 valueListenable: _ctrl!,
-                builder: (_, v, __) {
+                builder: (_, v, _) {
                   final total = v.duration.inMilliseconds;
                   final pos = v.position.inMilliseconds;
                   final progress = total > 0 ? pos / total : 0.0;
@@ -1032,7 +1032,7 @@ class _VideoList extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: videoUrls.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (_, i) => GestureDetector(
           onTap: () => onTap(i),
           child: AnimatedContainer(
@@ -1136,7 +1136,7 @@ class _ARButtonState extends State<_ARButton>
       ),
       child: AnimatedBuilder(
         animation: _pulse,
-        builder: (_, __) => Container(
+        builder: (_, _) => Container(
           height: 58,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
@@ -1243,7 +1243,7 @@ class _Gallery extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: images.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 10),
+        separatorBuilder: (_, _) => const SizedBox(width: 10),
         itemBuilder: (_, i) {
           final src = images[i];
           final isNet = src.startsWith('http://') || src.startsWith('https://');
@@ -1266,7 +1266,7 @@ class _Gallery extends StatelessWidget {
                                   height: 110,
                                   color: const Color(0xFF1A1A1A),
                                 ),
-                          errorBuilder: (_, __, ___) => Container(
+                          errorBuilder: (_, _, _) => Container(
                             width: 140,
                             height: 110,
                             color: const Color(0xFF1A1A1A),
@@ -1282,7 +1282,7 @@ class _Gallery extends StatelessWidget {
                           width: 140,
                           height: 110,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
+                          errorBuilder: (_, _, _) => Container(
                             width: 140,
                             height: 110,
                             color: const Color(0xFF1A1A1A),

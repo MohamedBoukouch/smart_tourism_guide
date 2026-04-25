@@ -73,14 +73,14 @@ class PlaceCardMarker extends StatelessWidget {
                                     ),
                                   ),
                                 ),
-                          errorBuilder: (_, __, ___) => _placeholder(),
+                          errorBuilder: (_, _, _) => _placeholder(),
                         )
                       : Image.asset(
                           imagePath,
                           width: 80,
                           height: 80,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _placeholder(),
+                          errorBuilder: (_, _, _) => _placeholder(),
                         ),
                 ),
 

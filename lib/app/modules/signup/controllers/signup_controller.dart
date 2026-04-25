@@ -117,4 +117,58 @@ Future<void> submitSignup() async {
     confirmPasswordController.dispose(); // Added
     super.onClose();
   }
+  
+Future<void> signInWithGoogle() async {
+  try {
+    isSubmitting.value = true;
+    await _authService.signInWithGoogle();
+    Get.offAllNamed(Routes.HOME);
+  } on FirebaseAuthException catch (e) {
+    // 🔴 Firebase error (most important)
+    debugPrint('🔥 Google Auth Error: ${e.code} | ${e.message}');
+    Get.snackbar(
+      "Erreur Google",
+      e.message ?? e.code,
+      snackPosition: SnackPosition.BOTTOM,
+    );
+  } catch (e, s) {
+    // 🔴 Any other error
+    debugPrint('🔥 Google Auth Unknown Error: $e');
+    debugPrintStack(stackTrace: s);
+    Get.snackbar(
+      "Erreur",
+      e.toString(),
+      snackPosition: SnackPosition.BOTTOM,
+    );
+  } finally {
+    isSubmitting.value = false;
+  }
+}
+
+
+Future<void> signInWithFacebook() async {
+  try {
+    isSubmitting.value = true;
+    await _authService.signInWithFacebook();
+    Get.offAllNamed(Routes.HOME);
+  } on FirebaseAuthException catch (e) {
+    debugPrint('🔥 Facebook Auth Error: ${e.code} | ${e.message}');
+    Get.snackbar(
+      "Erreur Facebook",
+      e.message ?? e.code,
+      snackPosition: SnackPosition.BOTTOM,
+    );
+  } catch (e, s) {
+    debugPrint('🔥 Facebook Auth Unknown Error: $e');
+    debugPrintStack(stackTrace: s);
+    Get.snackbar(
+      "Erreur",
+      e.toString(),
+      snackPosition: SnackPosition.BOTTOM,
+    );
+  } finally {
+    isSubmitting.value = false;
+  }
+}
+
 }

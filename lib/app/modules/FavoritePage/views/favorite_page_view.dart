@@ -12,7 +12,7 @@ class FavoritePageView extends StatefulWidget {
 }
 
 class _FavoritePageViewState extends State<FavoritePageView> {
-  int _selectedTab = 1; // 0 = Favoris, 1 = En Cours, 2 = Téléchargés
+  final int _selectedTab = 1; // 0 = Favoris, 1 = En Cours, 2 = Téléchargés
 
   @override
   Widget build(BuildContext context) {
@@ -108,6 +108,7 @@ class _FavoritePageViewState extends State<FavoritePageView> {
 // ─────────────────────────────────────────────────────────────────────────────
 // Tab Item
 // ─────────────────────────────────────────────────────────────────────────────
+
 class _TabItem extends StatelessWidget {
   final String label;
   final bool isSelected;
@@ -118,7 +119,7 @@ class _TabItem extends StatelessWidget {
     required this.label,
     required this.isSelected,
     required this.onTap,
-    this.icon,
+    this.icon, // ✅ FIX
   });
 
   @override
@@ -207,12 +208,12 @@ class _MonumentCard extends StatelessWidget {
                           ? Image.network(
                               place.imageAsset,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => _placeholder(),
+                              errorBuilder: (_, _, _) => _placeholder(),
                             )
                           : Image.asset(
                               place.imageAsset,
                               fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => _placeholder(),
+                              errorBuilder: (_, _, _) => _placeholder(),
                             ),
                     ),
                   ),

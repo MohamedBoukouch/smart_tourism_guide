@@ -45,6 +45,9 @@ dependencies:
   v: ^0.0.0-origin.0.1
   firebase_auth: ^6.3.0
   get_storage: ^2.1.1
+  
+  google_sign_in: ^6.2.1
+  flutter_facebook_auth: ^6.0.4
 dev_dependencies:
   flutter_test:
     sdk: flutter

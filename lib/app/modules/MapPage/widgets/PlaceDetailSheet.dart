@@ -6,8 +6,7 @@ class PlaceDetailSheet extends StatefulWidget {
   final VoidCallback onClose;
   
 
-  const PlaceDetailSheet({Key? key, required this.place, required this.onClose})
-    : super(key: key);
+  const PlaceDetailSheet({super.key, required this.place, required this.onClose});
 
   @override
   State<PlaceDetailSheet> createState() => _PlaceDetailSheetState();
@@ -541,7 +540,7 @@ class _PlaceImage extends StatelessWidget {
           ),
         );
       },
-      errorBuilder: (_, __, ___) => Container(
+      errorBuilder: (_, _, _) => Container(
         height: height,
         width: width,
         color: const Color(0xFFEEEEEE),
