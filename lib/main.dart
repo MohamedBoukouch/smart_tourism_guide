@@ -22,7 +22,7 @@ void main() async {
   runApp(
     GetMaterialApp(
       title: "Smart Tourism Guide",
-      initialRoute: '/home',
+      initialRoute: '/login',
       getPages: AppPages.routes,
       debugShowCheckedModeBanner: false,
       builder: (context, child) {

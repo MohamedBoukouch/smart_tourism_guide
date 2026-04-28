@@ -27,26 +27,46 @@ class SettingsPageView extends GetView<SettingsPageController> {
           children: [
             const SizedBox(height: 20),
             // Profile Section
-            const CircleAvatar(
-              radius: 45,
-              backgroundImage: NetworkImage(
-                'https://i.pravatar.cc/150?img=5',
-              ), // Placeholder image
-            ),
+            Obx(() {
+              final photoUrl = controller.photoUrl;
+              return CircleAvatar(
+                radius: 45,
+                backgroundColor: Colors.orange.shade100,
+                backgroundImage: photoUrl != null
+                    ? NetworkImage(photoUrl)
+                    : null,
+                child: photoUrl == null
+                    ? Text(
+                        controller.displayName.isNotEmpty
+                            ? controller.displayName[0].toUpperCase()
+                            : 'U',
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.orange,
+                        ),
+                      )
+                    : null,
+              );
+            }),
             const SizedBox(height: 12),
-            const Text(
-              'John Smith',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1E293B),
-              ),
-            ),
+            Obx(() {
+              return Text(
+                controller.displayName,
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E293B),
+                ),
+              );
+            }),
             const SizedBox(height: 4),
-            const Text(
-              'johansmith@gmail.com',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
-            ),
+            Obx(() {
+              return Text(
+                controller.email,
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+              );
+            }),
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
