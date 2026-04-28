@@ -7,6 +7,7 @@ import '../widgets/explore_slider.dart';
 import '../widgets/home_app_bar.dart';
 import '../widgets/home_search_bar.dart';
 
+
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
@@ -21,11 +22,15 @@ class HomePage extends StatelessWidget {
       image: 'assets/images/bordeaux.jpg',
       greeting: 'Bonjour',
       title: 'Explorez Bordeaux',
-    ),
+    )
   ];
 
   static final List<CityModel> _cities = [
-    CityModel(image: 'assets/images/paris.jpg', name: 'Paris', visitCount: 5),
+    CityModel(
+      image: 'assets/images/paris.jpg',
+      name: 'Paris',
+      visitCount: 5,
+    ),
     CityModel(
       image: 'assets/images/bordeaux.jpg',
       name: 'Bordeaux',

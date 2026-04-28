@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:smart_tourism_guide/app/modules/MapPage/models/TouristPlace.dart';
 import 'package:smart_tourism_guide/app/modules/MapPage/views/PlaceDetailPage.dart';
+import 'package:smart_tourism_guide/app/modules/home/widgets/home_app_bar.dart';
 import '../controllers/favorite_page_controller.dart';
 
 class FavoritePageView extends StatefulWidget {
@@ -20,43 +21,8 @@ class _FavoritePageViewState extends State<FavoritePageView> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: GestureDetector(
-          onTap: () => Get.back(),
-          child: Container(
-            margin: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.chevron_left, color: Colors.black),
-          ),
-        ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Stack(
-              children: [
-                Positioned(
-                  top: 2,
-                  right: 2,
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFFF8C00),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
 
+      // appBar: HomeAppBar(),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
