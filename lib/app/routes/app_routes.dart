@@ -16,6 +16,8 @@ abstract class Routes {
   static const DOWNLOADS = _Paths.DOWNLOADS;
   static const CGU = _Paths.CGU;
   static const CHATBOT = _Paths.CHATBOT;
+  static const AR_PAGE = _Paths.AR_PAGE;          // ← NOUVEAU
+
 }
 
 abstract class _Paths {
@@ -33,4 +35,5 @@ abstract class _Paths {
   static const DOWNLOADS = '/downloads';
   static const CGU = '/cgu';
   static const CHATBOT = '/chatbot';
+  static const AR_PAGE = '/ar-page';
 }

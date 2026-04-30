@@ -27,6 +27,9 @@ import '../modules/splash/views/splash_view.dart';
 
 import '../modules/login/views/forgot_password_view.dart'; // ✅ AJOUTER
 
+import '../modules/ARPage/bindings/ar_page_binding.dart';        // ← NOUVEAU
+import '../modules/ARPage/views/ar_page_view.dart';              // ← NOUVEAU
+
 part 'app_routes.dart';
 
 class AppPages {
@@ -100,6 +103,13 @@ class AppPages {
       name: _Paths.CHATBOT,
       page: () => const ChatbotView(),
       binding: ChatbotBinding(),
+    ),
+    // ← NOUVEAU
+    GetPage(
+      name: _Paths.AR_PAGE,
+      page: () => const ArPageView(),
+      binding: ArPageBinding(),
+      transition: Transition.fadeIn,
     ),
   ];
 }

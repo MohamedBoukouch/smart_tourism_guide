@@ -5,6 +5,9 @@ import 'package:get/get.dart';
 import 'package:video_player/video_player.dart';
 import 'package:smart_tourism_guide/app/modules/MapPage/models/TouristPlace.dart';
 import 'package:smart_tourism_guide/app/modules/FavoritePage/controllers/favorite_page_controller.dart';
+// ← Ajouter cet import en haut du fichier
+import 'package:get/get.dart';
+import 'package:smart_tourism_guide/app/routes/app_pages.dart';
 
 class PlaceDetailPage extends StatefulWidget {
   final TouristPlace place;
@@ -530,6 +533,11 @@ class _PlaceDetailPageState extends State<PlaceDetailPage>
               accent: _accent,
               accentDark: _accentDark,
               placeName: place.name,
+              placeCategory: place.category,
+              placeFact: place.description,
+              placeDistance: place.distance,
+              placeRating: place.rating,
+              placeOpenTime: place.openingHours,  // ← openingHours pas openTime
             ),
           ),
 
@@ -1094,11 +1102,23 @@ class _VideoList extends StatelessWidget {
 class _ARButton extends StatefulWidget {
   final Color accent, accentDark;
   final String placeName;
+  final String placeCategory;
+  final String placeFact;
+  final String placeDistance;
+  final double placeRating;
+  final String placeOpenTime;
+
   const _ARButton({
     required this.accent,
     required this.accentDark,
     required this.placeName,
+    required this.placeCategory,
+    required this.placeFact,
+    required this.placeDistance,
+    required this.placeRating,
+    required this.placeOpenTime,
   });
+
   @override
   State<_ARButton> createState() => _ARButtonState();
 }
@@ -1106,6 +1126,7 @@ class _ARButton extends StatefulWidget {
 class _ARButtonState extends State<_ARButton>
     with SingleTickerProviderStateMixin {
   late AnimationController _pulse;
+
   @override
   void initState() {
     super.initState();
@@ -1124,16 +1145,23 @@ class _ARButtonState extends State<_ARButton>
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => Get.snackbar(
-        '🥽 AR Experience',
-        'Launching AR for ${widget.placeName}...',
-        snackPosition: SnackPosition.TOP,
-        backgroundColor: widget.accent,
-        colorText: Colors.white,
-        margin: const EdgeInsets.all(16),
-        borderRadius: 12,
-        duration: const Duration(seconds: 3),
-      ),
+      onTap: () {
+        Get.toNamed(
+          Routes.AR_PAGE,
+          arguments: {
+            'name':     widget.placeName,
+            'category': widget.placeCategory,
+            'fact':     widget.placeFact,
+            'distance': widget.placeDistance.isNotEmpty
+                ? widget.placeDistance
+                : '-- km',
+            'rating':   '${widget.placeRating}/5',
+            'openTime': widget.placeOpenTime.isNotEmpty
+                ? widget.placeOpenTime
+                : '08:00',
+          },
+        );
+      },
       child: AnimatedBuilder(
         animation: _pulse,
         builder: (_, __) => Container(
@@ -1199,7 +1227,8 @@ class _ARButtonState extends State<_ARButton>
               ),
               const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: widget.accent.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(6),

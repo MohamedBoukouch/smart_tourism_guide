@@ -20,9 +20,9 @@ class _FavoritePageViewState extends State<FavoritePageView> {
     final controller = Get.put(FavoritePageController());
 
     return Scaffold(
-      backgroundColor: Colors.white,
 
-      // appBar: HomeAppBar(),
+      appBar: AppBar(title: const Text("Favorits"),),
+      backgroundColor: Colors.white,
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
